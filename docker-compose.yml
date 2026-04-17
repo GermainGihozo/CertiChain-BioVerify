@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: certchain-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: certchain
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: certchain-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/certchain
+      JWT_SECRET: ${JWT_SECRET:-change_this_secret}
+      JWT_EXPIRES_IN: 7d
+      CONTRACT_ADDRESS: ${CONTRACT_ADDRESS:-}
+      RPC_URL: ${RPC_URL:-http://host.docker.internal:8545}
+      ADMIN_WALLET_PRIVATE_KEY: ${ADMIN_WALLET_PRIVATE_KEY:-}
+      WEBAUTHN_RP_NAME: CertChain
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-localhost}
+      WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN:-http://localhost:3000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    depends_on:
+      - mongodb
+    volumes:
+      - ./blockchain/src/blockchain:/app/src/blockchain:ro
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:5000/api}
+        REACT_APP_CONTRACT_ADDRESS: ${CONTRACT_ADDRESS:-}
+    container_name: certchain-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
