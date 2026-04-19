@@ -50,7 +50,7 @@ const institutionSchema = new mongoose.Schema(
   }
 );
 
-institutionSchema.index({ walletAddress: 1 });
+// walletAddress index created by unique:true above
 institutionSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model("Institution", institutionSchema);

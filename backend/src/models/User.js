@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: [true, "Email is required"],
-      unique: true,
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
@@ -75,8 +74,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
-userSchema.index({ email: 1 });
-userSchema.index({ walletAddress: 1 });
+// email and walletAddress indexes are created by unique:true above
 userSchema.index({ role: 1 });
 
 // ─── Pre-save: hash password ──────────────────────────────────────────────────
