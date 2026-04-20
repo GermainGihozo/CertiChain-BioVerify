@@ -24,14 +24,13 @@ async function getRegistrationOptions(req, res, next) {
     // Exclude already-registered credential IDs
     const excludeCredentials = user.webauthnCredentials.map((cred) => ({
       id: Buffer.from(cred.credentialId, "base64url"),
-      type: "public-key",
       transports: cred.transports,
     }));
 
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
       rpID: RP_ID,
-      userID: user._id.toString(),
+      userID: Buffer.from(user._id.toString()),
       userName: user.email,
       userDisplayName: user.fullName,
       attestationType: "none",
@@ -39,7 +38,6 @@ async function getRegistrationOptions(req, res, next) {
       authenticatorSelection: {
         residentKey: "preferred",
         userVerification: "preferred",
-        // Allow platform authenticators (fingerprint, face, Windows Hello)
         authenticatorAttachment: "platform",
       },
     });
@@ -62,8 +60,7 @@ async function getRegistrationOptions(req, res, next) {
 async function verifyRegistration(req, res, next) {
   try {
     const user = await User.findById(req.user._id).select("+webauthnChallenge");
-    const { body } = req;
-    const { label } = req.body;
+    const { label, ...attestationResponse } = req.body;
 
     if (!user.webauthnChallenge) {
       return res.status(400).json({ error: "No pending registration challenge" });
@@ -72,7 +69,7 @@ async function verifyRegistration(req, res, next) {
     let verification;
     try {
       verification = await verifyRegistrationResponse({
-        response: body,
+        response: attestationResponse,
         expectedChallenge: user.webauthnChallenge,
         expectedOrigin: ORIGIN,
         expectedRPID: RP_ID,
@@ -94,19 +91,21 @@ async function verifyRegistration(req, res, next) {
     }
 
     const {
-      credential,
+      credentialID,
+      credentialPublicKey,
+      counter,
       credentialDeviceType,
       credentialBackedUp,
     } = registrationInfo;
 
     // Save credential
     user.webauthnCredentials.push({
-      credentialId: Buffer.from(credential.id).toString("base64url"),
-      publicKey: Buffer.from(credential.publicKey).toString("base64url"),
-      counter: credential.counter,
+      credentialId: Buffer.from(credentialID).toString("base64url"),
+      publicKey: Buffer.from(credentialPublicKey).toString("base64url"),
+      counter: counter,
       deviceType: credentialDeviceType,
       backedUp: credentialBackedUp,
-      transports: body.response?.transports || [],
+      transports: attestationResponse.response?.transports || [],
       label: label || "My Device",
     });
 
@@ -154,7 +153,6 @@ async function getAuthenticationOptions(req, res, next) {
 
     const allowCredentials = user.webauthnCredentials.map((cred) => ({
       id: Buffer.from(cred.credentialId, "base64url"),
-      type: "public-key",
       transports: cred.transports,
     }));
 
