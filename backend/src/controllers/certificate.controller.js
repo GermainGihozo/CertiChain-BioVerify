@@ -3,36 +3,29 @@ const QRCode = require("qrcode");
 const Certificate = require("../models/Certificate");
 const User = require("../models/User");
 const Institution = require("../models/Institution");
-const { generateCertificateHash, hashFileBuffer } = require("../utils/certificateHash");
+const { generateCertificateHash } = require("../utils/certificateHash");
 const { issueCertificateOnChain, revokeCertificateOnChain } = require("../utils/blockchain");
 const { logActivity } = require("../utils/activityLogger");
 
-/**
- * Generate a unique certificate ID.
- */
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function generateCertId(institutionShortName, year) {
   const short = (institutionShortName || "CERT").toUpperCase().replace(/\s+/g, "").slice(0, 6);
   const uid = uuidv4().split("-")[0].toUpperCase();
   return `${short}-${year}-${uid}`;
 }
 
+// ─── STAGE 1: Institution issues ──────────────────────────────────────────────
+
 /**
  * POST /api/certificates
- * Institution issues a certificate to a student.
+ * Institution submits a certificate.
+ * Status → "pending_student" (awaiting student biometric confirmation)
  */
 async function issueCertificate(req, res, next) {
   try {
-    const {
-      studentEmail,
-      studentWallet,
-      certificateTitle,
-      courseName,
-      graduationYear,
-      grade,
-      honors,
-    } = req.body;
+    const { studentEmail, studentWallet, certificateTitle, courseName, graduationYear, grade, honors } = req.body;
 
-    // Find student
     const student = await User.findOne({
       $or: [
         { email: studentEmail },
@@ -41,10 +34,9 @@ async function issueCertificate(req, res, next) {
       role: "student",
     });
     if (!student) {
-      return res.status(404).json({ error: "Student not found" });
+      return res.status(404).json({ error: "Student not found. Make sure the student is registered." });
     }
 
-    // Get institution
     const institution = await Institution.findById(req.user.institutionId);
     if (!institution || !institution.isActive) {
       return res.status(403).json({ error: "Institution not active" });
@@ -52,12 +44,11 @@ async function issueCertificate(req, res, next) {
 
     const certStudentWallet = studentWallet?.toLowerCase() || student.walletAddress;
     if (!certStudentWallet) {
-      return res.status(400).json({ error: "Student wallet address required" });
+      return res.status(400).json({ error: "Student wallet address is required for blockchain issuance" });
     }
 
     const certId = generateCertId(institution.shortName, graduationYear);
 
-    // Generate deterministic hash
     const certHash = generateCertificateHash({
       certificateId: certId,
       studentName: student.fullName,
@@ -68,11 +59,9 @@ async function issueCertificate(req, res, next) {
       graduationYear: Number(graduationYear),
     });
 
-    // Generate QR code pointing to public verification URL
     const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify/${certId}`;
     const qrCode = await QRCode.toDataURL(verifyUrl);
 
-    // Save to DB first
     const certificate = await Certificate.create({
       certificateId: certId,
       studentId: student._id,
@@ -89,42 +78,19 @@ async function issueCertificate(req, res, next) {
       certificateHash: certHash,
       qrCode,
       issuedBy: req.user._id,
-      status: "pending",
+      status: "pending_student", // Stage 1 complete — waiting for student
     });
-
-    // Issue on blockchain
-    try {
-      const { txHash, blockNumber } = await issueCertificateOnChain({
-        certificateId: certId,
-        certificateHash: certHash,
-        ownerWallet: certStudentWallet,
-        studentName: student.fullName,
-        courseName,
-        certificateTitle,
-        graduationYear: Number(graduationYear),
-      });
-
-      certificate.blockchainTxHash = txHash;
-      certificate.blockNumber = blockNumber;
-      certificate.isOnChain = true;
-      certificate.status = "issued";
-      await certificate.save();
-    } catch (chainErr) {
-      // Mark as pending — admin can retry
-      console.error("Blockchain issuance failed:", chainErr.message);
-      certificate.status = "pending";
-      await certificate.save();
-    }
 
     await logActivity("CERTIFICATE_ISSUED", {
       userId: req.user._id,
       institutionId: institution._id,
       certificateId: certId,
       ipAddress: req.ip,
+      details: { stage: "pending_student" },
     });
 
     res.status(201).json({
-      message: "Certificate issued",
+      message: "Certificate submitted. Awaiting student biometric confirmation.",
       certificate,
     });
   } catch (err) {
@@ -132,9 +98,165 @@ async function issueCertificate(req, res, next) {
   }
 }
 
+// ─── STAGE 2: Student confirms with biometric ─────────────────────────────────
+
+/**
+ * POST /api/certificates/:id/confirm
+ * Student confirms ownership via biometric (WebAuthn already verified by middleware).
+ * Status → "pending_admin" (awaiting admin approval)
+ */
+async function confirmCertificate(req, res, next) {
+  try {
+    const cert = await Certificate.findOne({ certificateId: req.params.id });
+    if (!cert) return res.status(404).json({ error: "Certificate not found" });
+
+    // Must belong to this student
+    if (String(cert.studentId) !== String(req.user._id)) {
+      return res.status(403).json({ error: "This certificate does not belong to you" });
+    }
+
+    if (cert.status !== "pending_student") {
+      return res.status(400).json({
+        error: cert.status === "pending_admin"
+          ? "You have already confirmed this certificate"
+          : `Certificate is already ${cert.status}`,
+      });
+    }
+
+    cert.status = "pending_admin";
+    cert.studentConfirmedAt = new Date();
+    cert.studentConfirmedBiometric = true;
+    await cert.save();
+
+    await logActivity("CERTIFICATE_STUDENT_CONFIRMED", {
+      userId: req.user._id,
+      certificateId: cert.certificateId,
+      ipAddress: req.ip,
+    });
+
+    res.json({
+      message: "Certificate confirmed. Awaiting admin approval.",
+      certificate: cert,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── STAGE 3a: Admin approves ─────────────────────────────────────────────────
+
+/**
+ * POST /api/certificates/:id/approve
+ * Admin approves → issues on blockchain → status "issued"
+ */
+async function approveCertificate(req, res, next) {
+  try {
+    const cert = await Certificate.findOne({ certificateId: req.params.id });
+    if (!cert) return res.status(404).json({ error: "Certificate not found" });
+
+    if (cert.status !== "pending_admin") {
+      return res.status(400).json({
+        error: cert.status === "pending_student"
+          ? "Student has not confirmed this certificate yet"
+          : `Certificate is already ${cert.status}`,
+      });
+    }
+
+    // Issue on blockchain
+    let isOnChain = false;
+    let txHash, blockNumber;
+    try {
+      ({ txHash, blockNumber } = await issueCertificateOnChain({
+        certificateId: cert.certificateId,
+        certificateHash: cert.certificateHash,
+        ownerWallet: cert.studentWallet,
+        studentName: cert.studentName,
+        courseName: cert.courseName,
+        certificateTitle: cert.certificateTitle,
+        graduationYear: cert.graduationYear,
+      }));
+      isOnChain = true;
+    } catch (chainErr) {
+      console.error("Blockchain issuance failed:", chainErr.message);
+      // Still mark as issued in DB — blockchain can be retried
+    }
+
+    cert.status = "issued";
+    cert.approvedBy = req.user._id;
+    cert.approvedAt = new Date();
+    if (isOnChain) {
+      cert.blockchainTxHash = txHash;
+      cert.blockNumber = blockNumber;
+      cert.isOnChain = true;
+    }
+    await cert.save();
+
+    await logActivity("CERTIFICATE_APPROVED", {
+      userId: req.user._id,
+      certificateId: cert.certificateId,
+      ipAddress: req.ip,
+      details: { isOnChain },
+    });
+
+    res.json({
+      message: isOnChain
+        ? "Certificate approved and recorded on blockchain ✓"
+        : "Certificate approved (blockchain pending — node may be offline)",
+      certificate: cert,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── STAGE 3b: Admin rejects ──────────────────────────────────────────────────
+
+/**
+ * POST /api/certificates/:id/reject
+ * Admin rejects a certificate that is pending_admin.
+ */
+async function rejectCertificate(req, res, next) {
+  try {
+    const { reason } = req.body;
+    if (!reason?.trim()) {
+      return res.status(400).json({ error: "Rejection reason is required" });
+    }
+
+    const cert = await Certificate.findOne({ certificateId: req.params.id });
+    if (!cert) return res.status(404).json({ error: "Certificate not found" });
+
+    if (cert.status !== "pending_admin") {
+      return res.status(400).json({
+        error: cert.status === "pending_student"
+          ? "Student has not confirmed this certificate yet"
+          : `Certificate is already ${cert.status}`,
+      });
+    }
+
+    cert.status = "rejected";
+    cert.rejectedBy = req.user._id;
+    cert.rejectedAt = new Date();
+    cert.rejectionReason = reason.trim();
+    cert.rejectedStage = "admin";
+    await cert.save();
+
+    await logActivity("CERTIFICATE_REJECTED", {
+      userId: req.user._id,
+      certificateId: cert.certificateId,
+      ipAddress: req.ip,
+      details: { reason },
+    });
+
+    res.json({ message: "Certificate rejected", certificate: cert });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── List / Get ───────────────────────────────────────────────────────────────
+
 /**
  * GET /api/certificates
- * List certificates — filtered by role.
  */
 async function listCertificates(req, res, next) {
   try {
@@ -153,6 +275,8 @@ async function listCertificates(req, res, next) {
     const certificates = await Certificate.find(filter)
       .populate("studentId", "fullName email studentId")
       .populate("institutionId", "name shortName")
+      .populate("approvedBy", "fullName")
+      .populate("rejectedBy", "fullName")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
@@ -172,13 +296,12 @@ async function getCertificate(req, res, next) {
   try {
     const cert = await Certificate.findOne({ certificateId: req.params.id })
       .populate("studentId", "fullName email studentId")
-      .populate("institutionId", "name shortName website");
+      .populate("institutionId", "name shortName website")
+      .populate("approvedBy", "fullName")
+      .populate("rejectedBy", "fullName");
 
-    if (!cert) {
-      return res.status(404).json({ error: "Certificate not found" });
-    }
+    if (!cert) return res.status(404).json({ error: "Certificate not found" });
 
-    // Students can only see their own
     if (req.user.role === "student" && String(cert.studentId._id) !== String(req.user._id)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -194,34 +317,26 @@ async function getCertificate(req, res, next) {
   }
 }
 
+// ─── Revoke ───────────────────────────────────────────────────────────────────
+
 /**
  * POST /api/certificates/:id/revoke
  */
 async function revokeCertificate(req, res, next) {
   try {
     const { reason } = req.body;
-    if (!reason) {
-      return res.status(400).json({ error: "Revocation reason required" });
-    }
+    if (!reason) return res.status(400).json({ error: "Revocation reason required" });
 
     const cert = await Certificate.findOne({ certificateId: req.params.id });
-    if (!cert) {
-      return res.status(404).json({ error: "Certificate not found" });
-    }
+    if (!cert) return res.status(404).json({ error: "Certificate not found" });
 
-    if (cert.status === "revoked") {
-      return res.status(400).json({ error: "Certificate already revoked" });
-    }
+    if (cert.status === "revoked") return res.status(400).json({ error: "Already revoked" });
+    if (cert.status !== "issued") return res.status(400).json({ error: "Only issued certificates can be revoked" });
 
-    // Only issuing institution or admin
-    if (
-      req.user.role !== "admin" &&
-      String(cert.institutionId) !== String(req.user.institutionId)
-    ) {
+    if (req.user.role !== "admin" && String(cert.institutionId) !== String(req.user.institutionId)) {
       return res.status(403).json({ error: "Not authorized to revoke" });
     }
 
-    // Revoke on chain
     try {
       await revokeCertificateOnChain(cert.certificateId, reason);
     } catch (chainErr) {
@@ -248,6 +363,9 @@ async function revokeCertificate(req, res, next) {
 
 module.exports = {
   issueCertificate,
+  confirmCertificate,
+  approveCertificate,
+  rejectCertificate,
   listCertificates,
   getCertificate,
   revokeCertificate,

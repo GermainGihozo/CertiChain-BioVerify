@@ -49,9 +49,21 @@ const certificateSchema = new mongoose.Schema(
     // Status
     status: {
       type: String,
-      enum: ["pending", "issued", "revoked"],
-      default: "pending",
+      enum: ["pending_student", "pending_admin", "issued", "rejected", "revoked"],
+      default: "pending_student",
     },
+    // Student biometric confirmation
+    studentConfirmedAt: Date,
+    studentConfirmedBiometric: { type: Boolean, default: false },
+    // Admin approval
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedAt: Date,
+    // Rejection
+    rejectedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    rejectedAt: Date,
+    rejectionReason: { type: String },
+    rejectedStage: { type: String, enum: ["admin"] }, // who rejected
+    // Revocation
     revocationReason: { type: String },
     revokedAt: Date,
     revokedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

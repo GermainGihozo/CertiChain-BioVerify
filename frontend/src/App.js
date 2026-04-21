@@ -23,6 +23,7 @@ import ManageInstitutions  from "./pages/admin/ManageInstitutions";
 import ManageUsers         from "./pages/admin/ManageUsers";
 import ActivityLogs        from "./pages/admin/ActivityLogs";
 import AdminSettings       from "./pages/admin/Settings";
+import ApproveCertificates from "./pages/admin/ApproveCertificates";
 import VerifyPage          from "./pages/VerifyPage";
 import NotFoundPage        from "./pages/NotFoundPage";
 
@@ -86,6 +87,7 @@ export default function App() {
               <Route path="institutions" element={<ManageInstitutions />} />
               <Route path="users" element={<ManageUsers />} />
               <Route path="activity" element={<ActivityLogs />} />
+              <Route path="approvals" element={<ApproveCertificates />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
           </Routes>

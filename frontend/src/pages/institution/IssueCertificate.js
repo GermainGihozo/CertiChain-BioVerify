@@ -42,13 +42,40 @@ export default function IssueCertificate() {
       <div className="max-w-2xl mx-auto px-4 py-10">
         <div className="card text-center py-10">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Certificate Issued!</h2>
-          <p className="text-gray-500 mb-6">The certificate has been recorded on the blockchain.</p>
-          <div className="bg-gray-50 rounded-xl p-4 text-left text-sm space-y-2 mb-6">
-            <p><span className="text-gray-500">Certificate ID:</span> <span className="font-mono font-medium">{issued.certificateId}</span></p>
-            <p><span className="text-gray-500">Student:</span> <span className="font-medium">{issued.studentName}</span></p>
-            <p><span className="text-gray-500">Course:</span> <span className="font-medium">{issued.courseName}</span></p>
-            <p><span className="text-gray-500">Status:</span> <span className={`font-medium ${issued.isOnChain ? "text-green-600" : "text-yellow-600"}`}>{issued.isOnChain ? "On Blockchain ✓" : "Pending blockchain"}</span></p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Certificate Submitted!</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
+            The student will be notified to confirm ownership with their biometric, then an admin will approve it.
+          </p>
+
+          {/* Flow steps */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs text-green-600 font-medium">Issued</span>
+            </div>
+            <div className="w-10 h-0.5 bg-yellow-300" />
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">2</span>
+              </div>
+              <span className="text-xs text-yellow-600 font-medium">Student</span>
+            </div>
+            <div className="w-10 h-0.5 bg-gray-200" />
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                <span className="text-gray-500 text-xs font-bold">3</span>
+              </div>
+              <span className="text-xs text-gray-400 font-medium">Admin</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-left text-sm space-y-2 mb-6">
+            <p><span className="text-gray-500">Certificate ID:</span> <span className="font-mono font-medium dark:text-gray-200">{issued.certificateId}</span></p>
+            <p><span className="text-gray-500">Student:</span> <span className="font-medium dark:text-gray-200">{issued.studentName}</span></p>
+            <p><span className="text-gray-500">Course:</span> <span className="font-medium dark:text-gray-200">{issued.courseName}</span></p>
+            <p><span className="text-gray-500">Status:</span> <span className="font-medium text-yellow-600">Awaiting student confirmation</span></p>
           </div>
           <div className="flex gap-3 justify-center">
             <button onClick={() => { setIssued(null); setForm({ ...form, studentEmail: "", studentWallet: "" }); }} className="btn-secondary">
@@ -118,14 +145,21 @@ export default function IssueCertificate() {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700">
+          <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-sm text-blue-700 dark:text-blue-300">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <p>A cryptographic hash will be generated and stored on the Ethereum blockchain. This action is permanent.</p>
+            <div>
+              <p className="font-medium mb-1">3-step approval process</p>
+              <ol className="list-decimal list-inside space-y-0.5 text-xs">
+                <li>You submit the certificate (now)</li>
+                <li>Student confirms ownership with biometric</li>
+                <li>Admin approves and records on blockchain</li>
+              </ol>
+            </div>
           </div>
 
           <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
             <Award className="w-4 h-4" />
-            {loading ? "Issuing on Blockchain..." : "Issue Certificate"}
+            {loading ? "Submitting..." : "Submit Certificate"}
           </button>
         </form>
       </div>

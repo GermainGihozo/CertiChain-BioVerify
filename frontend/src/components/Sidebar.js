@@ -83,6 +83,12 @@ const navigationConfig = {
       description: "System overview",
     },
     {
+      label: "Certificate Approvals",
+      path: "/admin/approvals",
+      icon: ShieldCheck,
+      description: "Review and approve certificates",
+    },
+    {
       label: "Institutions",
       path: "/admin/institutions",
       icon: Building2,
