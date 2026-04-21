@@ -21,13 +21,8 @@ async function getRegistrationOptions(req, res, next) {
   try {
     const user = req.user;
 
-    // Exclude already-registered credential IDs
-    const excludeCredentials = user.webauthnCredentials.map((cred) => ({
-      id: Buffer.from(cred.credentialId, "base64url"),
-      type: "public-key",
-      transports: cred.transports,
-    }));
-
+    // Don't pass excludeCredentials to generateRegistrationOptions
+    // We'll add them manually to avoid Buffer serialization issues
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
       rpID: RP_ID,
@@ -35,13 +30,21 @@ async function getRegistrationOptions(req, res, next) {
       userName: user.email,
       userDisplayName: user.fullName,
       attestationType: "none",
-      excludeCredentials,
       authenticatorSelection: {
         residentKey: "preferred",
         userVerification: "preferred",
         authenticatorAttachment: "platform",
       },
     });
+
+    // Manually add excludeCredentials with proper format for JSON serialization
+    if (user.webauthnCredentials.length > 0) {
+      options.excludeCredentials = user.webauthnCredentials.map((cred) => ({
+        id: cred.credentialId, // Already in base64url format
+        type: "public-key",
+        transports: cred.transports || [],
+      }));
+    }
 
     // Store challenge temporarily
     await User.findByIdAndUpdate(user._id, {
@@ -152,17 +155,19 @@ async function getAuthenticationOptions(req, res, next) {
       return res.status(400).json({ error: "No biometric credentials registered" });
     }
 
-    const allowCredentials = user.webauthnCredentials.map((cred) => ({
-      id: Buffer.from(cred.credentialId, "base64url"),
-      type: "public-key",
-      transports: cred.transports,
-    }));
-
+    // Don't pass allowCredentials to generateAuthenticationOptions
+    // We'll add them manually to avoid Buffer serialization issues
     const options = await generateAuthenticationOptions({
       rpID: RP_ID,
-      allowCredentials,
       userVerification: "preferred",
     });
+
+    // Manually add allowCredentials with proper format for JSON serialization
+    options.allowCredentials = user.webauthnCredentials.map((cred) => ({
+      id: cred.credentialId, // Already in base64url format
+      type: "public-key",
+      transports: cred.transports || [],
+    }));
 
     // Store challenge
     await User.findByIdAndUpdate(user._id, {
