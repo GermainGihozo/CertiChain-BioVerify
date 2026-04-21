@@ -24,6 +24,7 @@ async function getRegistrationOptions(req, res, next) {
     // Exclude already-registered credential IDs
     const excludeCredentials = user.webauthnCredentials.map((cred) => ({
       id: Buffer.from(cred.credentialId, "base64url"),
+      type: "public-key",
       transports: cred.transports,
     }));
 
@@ -153,6 +154,7 @@ async function getAuthenticationOptions(req, res, next) {
 
     const allowCredentials = user.webauthnCredentials.map((cred) => ({
       id: Buffer.from(cred.credentialId, "base64url"),
+      type: "public-key",
       transports: cred.transports,
     }));
 
@@ -181,23 +183,31 @@ async function verifyAuthentication(req, res, next) {
   try {
     const { userId, ...body } = req.body;
 
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
     const user = await User.findById(userId).select("+webauthnChallenge");
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
     if (!user.webauthnChallenge) {
-      return res.status(400).json({ error: "No pending authentication challenge" });
+      return res.status(400).json({ error: "No pending authentication challenge. Please request new options." });
     }
 
-    // Find the matching credential
+    // Find the matching credential — normalize both sides to base64url
     const credentialIdBase64 = body.id;
-    const storedCredential = user.webauthnCredentials.find(
-      (c) => c.credentialId === credentialIdBase64
-    );
+    const storedCredential = user.webauthnCredentials.find((c) => {
+      // stored as base64url, browser also returns base64url
+      return c.credentialId === credentialIdBase64;
+    });
 
     if (!storedCredential) {
-      return res.status(400).json({ error: "Credential not found" });
+      return res.status(400).json({
+        error: "Credential not found",
+        detail: `Received id: ${credentialIdBase64}, stored: ${user.webauthnCredentials.map((c) => c.credentialId).join(", ")}`,
+      });
     }
 
     let verification;
@@ -207,9 +217,9 @@ async function verifyAuthentication(req, res, next) {
         expectedChallenge: user.webauthnChallenge,
         expectedOrigin: ORIGIN,
         expectedRPID: RP_ID,
-        credential: {
-          id: Buffer.from(storedCredential.credentialId, "base64url"),
-          publicKey: Buffer.from(storedCredential.publicKey, "base64url"),
+        authenticator: {
+          credentialID: Buffer.from(storedCredential.credentialId, "base64url"),
+          credentialPublicKey: Buffer.from(storedCredential.publicKey, "base64url"),
           counter: storedCredential.counter,
           transports: storedCredential.transports,
         },
