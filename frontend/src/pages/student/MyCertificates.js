@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import { authenticateBiometric } from "../../services/webauthn";
 import CertificateCard from "../../components/CertificateCard";
@@ -7,6 +8,7 @@ import { Award, RefreshCw, Fingerprint, Clock, CheckCircle, AlertTriangle } from
 import toast from "react-hot-toast";
 
 export default function MyCertificates() {
+  const { user } = useAuth(); // Get current user
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(null);
@@ -26,11 +28,16 @@ export default function MyCertificates() {
     }
   };
 
-  const handleConfirm = async (certId, userEmail) => {
+  const handleConfirm = async (certId) => {
+    if (!user?.email) {
+      toast.error("User email not found");
+      return;
+    }
+
     setConfirming(certId);
     try {
       // Step 1: Biometric authentication
-      const bioResult = await authenticateBiometric(userEmail);
+      const bioResult = await authenticateBiometric(user.email);
       if (!bioResult.verified) {
         toast.error("Biometric verification failed");
         setConfirming(null);
@@ -42,7 +49,8 @@ export default function MyCertificates() {
       toast.success(data.message);
       await loadCertificates();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Confirmation failed");
+      console.error("Confirmation error:", err);
+      toast.error(err.response?.data?.error || err.message || "Confirmation failed");
     } finally {
       setConfirming(null);
     }
@@ -128,7 +136,7 @@ export default function MyCertificates() {
                     </div>
 
                     <button
-                      onClick={() => handleConfirm(cert.certificateId, cert.studentId?.email)}
+                      onClick={() => handleConfirm(cert.certificateId)}
                       disabled={confirming === cert.certificateId}
                       className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary-600 to-accent-500 hover:from-primary-700 hover:to-accent-600 text-white font-semibold py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                     >
