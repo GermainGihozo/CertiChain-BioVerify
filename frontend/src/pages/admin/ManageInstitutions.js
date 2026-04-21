@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
+import PageHeader from "../../components/PageHeader";
 import { Building2, Plus, CheckCircle, XCircle, RefreshCw, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -60,16 +61,17 @@ export default function ManageInstitutions() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Manage Institutions</h1>
-          <p className="text-gray-500 mt-1">{institutions.length} registered institutions</p>
-        </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Institution
-        </button>
-      </div>
+      <PageHeader
+        title="Manage Institutions"
+        description={`${institutions.length} registered institutions`}
+        icon={Building2}
+        actions={
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Add Institution
+          </button>
+        }
+      />
 
       {/* Create form */}
       {showForm && (

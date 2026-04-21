@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../services/api";
+import PageHeader from "../../components/PageHeader";
 import {
   Users, Building2, Award, ShieldCheck,
-  TrendingUp, AlertTriangle, ArrowRight
+  TrendingUp, AlertTriangle, ArrowRight, LayoutDashboard
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -36,10 +37,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-500 mt-1">System overview and management</p>
-      </div>
+      <PageHeader
+        title="Admin Dashboard"
+        description="System overview and management"
+        icon={LayoutDashboard}
+      />
 
       {/* Stats */}
       {stats && (

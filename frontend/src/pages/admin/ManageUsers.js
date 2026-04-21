@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
+import PageHeader from "../../components/PageHeader";
 import { Users, Search, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -53,16 +54,17 @@ export default function ManageUsers() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Manage Users</h1>
-          <p className="text-gray-500 mt-1">{users.length} users</p>
-        </div>
-        <button onClick={loadUsers} className="btn-secondary flex items-center gap-2 text-sm">
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
-      </div>
+      <PageHeader
+        title="Manage Users"
+        description={`${users.length} users`}
+        icon={Users}
+        actions={
+          <button onClick={loadUsers} className="btn-secondary flex items-center gap-2 text-sm">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex gap-3 mb-6">

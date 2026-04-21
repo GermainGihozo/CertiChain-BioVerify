@@ -13,18 +13,22 @@ import StudentDashboard    from "./pages/student/StudentDashboard";
 import MyCertificates      from "./pages/student/MyCertificates";
 import OwnershipVerify     from "./pages/student/OwnershipVerify";
 import BiometricSetup      from "./pages/student/BiometricSetup";
+import StudentSettings     from "./pages/student/Settings";
 import InstitutionDashboard from "./pages/institution/InstitutionDashboard";
 import IssueCertificate    from "./pages/institution/IssueCertificate";
 import ManageStudents      from "./pages/institution/ManageStudents";
+import InstitutionSettings from "./pages/institution/Settings";
 import AdminDashboard      from "./pages/admin/AdminDashboard";
 import ManageInstitutions  from "./pages/admin/ManageInstitutions";
 import ManageUsers         from "./pages/admin/ManageUsers";
 import ActivityLogs        from "./pages/admin/ActivityLogs";
+import AdminSettings       from "./pages/admin/Settings";
 import VerifyPage          from "./pages/VerifyPage";
 import NotFoundPage        from "./pages/NotFoundPage";
 
 // Layout
 import Layout from "./components/Layout";
+import DashboardLayout from "./components/DashboardLayout";
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -56,25 +60,33 @@ export default function App() {
               <Route path="register" element={<RegisterPage />} />
               <Route path="verify" element={<VerifyPage />} />
               <Route path="verify/:certId" element={<VerifyPage />} />
-
-              {/* Student */}
-              <Route path="student" element={<ProtectedRoute roles={["student"]}><StudentDashboard /></ProtectedRoute>} />
-              <Route path="student/certificates" element={<ProtectedRoute roles={["student"]}><MyCertificates /></ProtectedRoute>} />
-              <Route path="student/verify-ownership" element={<ProtectedRoute roles={["student"]}><OwnershipVerify /></ProtectedRoute>} />
-              <Route path="student/biometric-setup" element={<ProtectedRoute roles={["student"]}><BiometricSetup /></ProtectedRoute>} />
-
-              {/* Institution */}
-              <Route path="institution" element={<ProtectedRoute roles={["institution"]}><InstitutionDashboard /></ProtectedRoute>} />
-              <Route path="institution/issue" element={<ProtectedRoute roles={["institution"]}><IssueCertificate /></ProtectedRoute>} />
-              <Route path="institution/students" element={<ProtectedRoute roles={["institution"]}><ManageStudents /></ProtectedRoute>} />
-
-              {/* Admin */}
-              <Route path="admin" element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
-              <Route path="admin/institutions" element={<ProtectedRoute roles={["admin"]}><ManageInstitutions /></ProtectedRoute>} />
-              <Route path="admin/users" element={<ProtectedRoute roles={["admin"]}><ManageUsers /></ProtectedRoute>} />
-              <Route path="admin/activity" element={<ProtectedRoute roles={["admin"]}><ActivityLogs /></ProtectedRoute>} />
-
               <Route path="*" element={<NotFoundPage />} />
+            </Route>
+
+            {/* Student Dashboard */}
+            <Route path="/student" element={<ProtectedRoute roles={["student"]}><DashboardLayout /></ProtectedRoute>}>
+              <Route index element={<StudentDashboard />} />
+              <Route path="certificates" element={<MyCertificates />} />
+              <Route path="verify-ownership" element={<OwnershipVerify />} />
+              <Route path="biometric-setup" element={<BiometricSetup />} />
+              <Route path="settings" element={<StudentSettings />} />
+            </Route>
+
+            {/* Institution Dashboard */}
+            <Route path="/institution" element={<ProtectedRoute roles={["institution"]}><DashboardLayout /></ProtectedRoute>}>
+              <Route index element={<InstitutionDashboard />} />
+              <Route path="issue" element={<IssueCertificate />} />
+              <Route path="students" element={<ManageStudents />} />
+              <Route path="settings" element={<InstitutionSettings />} />
+            </Route>
+
+            {/* Admin Dashboard */}
+            <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><DashboardLayout /></ProtectedRoute>}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="institutions" element={<ManageInstitutions />} />
+              <Route path="users" element={<ManageUsers />} />
+              <Route path="activity" element={<ActivityLogs />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
           </Routes>
           </Web3Provider>

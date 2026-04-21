@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useWeb3 } from "../../context/Web3Context";
 import api from "../../services/api";
+import PageHeader from "../../components/PageHeader";
 import {
   Award, Fingerprint, ShieldCheck, Wallet,
-  ArrowRight, CheckCircle, AlertCircle
+  ArrowRight, CheckCircle, AlertCircle, LayoutDashboard
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -48,14 +49,12 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
-      {/* Welcome */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {user.fullName.split(" ")[0]} 👋
-        </h1>
-        <p className="text-gray-500 mt-1">Manage your academic certificates and identity</p>
-      </div>
+    <div>
+      <PageHeader
+        title={`Welcome back, ${user.fullName.split(" ")[0]}`}
+        description="Manage your academic certificates and identity"
+        icon={LayoutDashboard}
+      />
 
       {/* Alerts */}
       <div className="space-y-3 mb-8">

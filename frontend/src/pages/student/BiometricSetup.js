@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import { registerBiometric, isWebAuthnSupported, isPlatformAuthenticatorAvailable } from "../../services/webauthn";
 import { Fingerprint, CheckCircle, Trash2, Plus, AlertCircle, Monitor } from "lucide-react";
+import PageHeader from "../../components/PageHeader";
 import toast from "react-hot-toast";
 
 export default function BiometricSetup() {
@@ -55,12 +55,11 @@ export default function BiometricSetup() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Biometric Setup</h1>
-        <p className="text-gray-500 mt-1">
-          Register your fingerprint, face, or Windows Hello to prove certificate ownership.
-        </p>
-      </div>
+      <PageHeader
+        title="Biometric Setup"
+        description="Register your fingerprint, face, or Windows Hello to prove certificate ownership"
+        icon={Fingerprint}
+      />
 
       {/* Support check */}
       {!supported && (

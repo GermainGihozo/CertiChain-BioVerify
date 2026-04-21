@@ -21,6 +21,13 @@ function getProvider() {
   if (!provider) {
     const rpcUrl = process.env.RPC_URL || "http://127.0.0.1:8545";
     provider = new ethers.JsonRpcProvider(rpcUrl);
+    
+    // Suppress connection errors in development
+    provider.on("error", (error) => {
+      if (process.env.NODE_ENV === "development") {
+        logger.warn("Blockchain connection error (non-fatal):", error.message);
+      }
+    });
   }
   return provider;
 }

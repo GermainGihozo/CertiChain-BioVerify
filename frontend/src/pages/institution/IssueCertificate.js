@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
-import { Award, CheckCircle, AlertCircle } from "lucide-react";
+import PageHeader from "../../components/PageHeader";
+import { Award, CheckCircle, AlertCircle, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -64,10 +65,11 @@ export default function IssueCertificate() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Issue Certificate</h1>
-        <p className="text-gray-500 mt-1">Issue a blockchain-verified certificate to a student</p>
-      </div>
+      <PageHeader
+        title="Issue Certificate"
+        description="Issue blockchain-verified certificates to students"
+        icon={Upload}
+      />
 
       <div className="card">
         <form onSubmit={handleSubmit} className="space-y-5">

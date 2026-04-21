@@ -62,12 +62,19 @@ async function login(req, res, next) {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email }).select("+password");
-    if (!user || !user.isActive) {
+    if (!user) {
+      console.log(`[LOGIN] User not found: ${email}`);
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+    
+    if (!user.isActive) {
+      console.log(`[LOGIN] User inactive: ${email}`);
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      console.log(`[LOGIN] Wrong password for: ${email}`);
       await logActivity("USER_LOGIN", {
         userId: user._id,
         ipAddress: req.ip,
@@ -94,6 +101,7 @@ async function login(req, res, next) {
       institutionData = await Institution.findById(user.institutionId);
     }
 
+    console.log(`[LOGIN] Success: ${email} (${user.role})`);
     res.json({
       message: "Login successful",
       token,

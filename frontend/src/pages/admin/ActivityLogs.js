@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
-import { RefreshCw, Filter } from "lucide-react";
+import PageHeader from "../../components/PageHeader";
+import { RefreshCw, Filter, Activity } from "lucide-react";
 import toast from "react-hot-toast";
 
 const ACTION_TYPES = [
@@ -54,16 +55,17 @@ export default function ActivityLogs() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Activity Logs</h1>
-          <p className="text-gray-500 mt-1">{total} total events</p>
-        </div>
-        <button onClick={loadLogs} className="btn-secondary flex items-center gap-2 text-sm">
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
-      </div>
+      <PageHeader
+        title="Activity Logs"
+        description={`${total} total events`}
+        icon={Activity}
+        actions={
+          <button onClick={loadLogs} className="btn-secondary flex items-center gap-2 text-sm">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+        }
+      />
 
       {/* Filter */}
       <div className="flex items-center gap-3 mb-6">

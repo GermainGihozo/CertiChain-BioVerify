@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
-import { Award, Users, Plus, CheckCircle, Clock, XCircle, ArrowRight } from "lucide-react";
+import PageHeader from "../../components/PageHeader";
+import { Award, Users, Plus, CheckCircle, Clock, XCircle, ArrowRight, LayoutDashboard } from "lucide-react";
 
 export default function InstitutionDashboard() {
   const [stats, setStats] = useState({ total: 0, issued: 0, pending: 0, revoked: 0 });
@@ -35,10 +35,11 @@ export default function InstitutionDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Institution Dashboard</h1>
-        <p className="text-gray-500 mt-1">Manage certificate issuance and student records</p>
-      </div>
+      <PageHeader
+        title="Institution Dashboard"
+        description="Manage certificate issuance and student records"
+        icon={LayoutDashboard}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

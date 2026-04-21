@@ -4,6 +4,7 @@ import api from "../../services/api";
 import { authenticateBiometric } from "../../services/webauthn";
 import CertificateCard from "../../components/CertificateCard";
 import BiometricButton from "../../components/BiometricButton";
+import PageHeader from "../../components/PageHeader";
 import { ShieldCheck, Lock, Unlock, Award } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -36,12 +37,11 @@ export default function OwnershipVerify() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Verify Certificate Ownership</h1>
-        <p className="text-gray-500 mt-1">
-          Prove you are the rightful owner of your certificates using biometric authentication.
-        </p>
-      </div>
+      <PageHeader
+        title="Verify Certificate Ownership"
+        description="Prove you are the rightful owner of your certificates using biometric authentication"
+        icon={ShieldCheck}
+      />
 
       {!verified ? (
         <div className="card text-center py-12">
