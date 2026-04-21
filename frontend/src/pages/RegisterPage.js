@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 
 export default function RegisterPage() {
   const { register } = useAuth();
-  const { account, connectWallet } = useWeb3();
+  const { connectWallet } = useWeb3();
   const navigate = useNavigate();
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);

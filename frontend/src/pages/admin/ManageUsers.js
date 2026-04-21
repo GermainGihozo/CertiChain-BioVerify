@@ -9,7 +9,10 @@ export default function ManageUsers() {
   const [search, setSearch] = useState("");
   const [role, setRole]     = useState("");
 
-  useEffect(() => { loadUsers(); }, [role]);
+  useEffect(() => { 
+    loadUsers(); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
 
   const loadUsers = async () => {
     setLoading(true);

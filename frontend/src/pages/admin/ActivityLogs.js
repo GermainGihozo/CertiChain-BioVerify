@@ -32,7 +32,10 @@ export default function ActivityLogs() {
   const [total, setTotal]   = useState(0);
   const LIMIT = 50;
 
-  useEffect(() => { loadLogs(); }, [action, page]);
+  useEffect(() => { 
+    loadLogs(); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [action, page]);
 
   const loadLogs = async () => {
     setLoading(true);

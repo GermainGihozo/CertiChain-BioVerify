@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Web3Provider } from "./context/Web3Context";
+import { ThemeProvider } from "./context/ThemeContext";
 
 // Pages
 import HomePage        from "./pages/HomePage";
@@ -36,16 +37,18 @@ function ProtectedRoute({ children, roles }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Web3Provider>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: { borderRadius: "10px", fontFamily: "Inter, sans-serif" },
-            }}
-          />
-          <Routes>
+      <ThemeProvider>
+        <AuthProvider>
+          <Web3Provider>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: { borderRadius: "10px", fontFamily: "Inter, sans-serif" },
+                className: "dark:bg-gray-800 dark:text-gray-100",
+              }}
+            />
+            <Routes>
             {/* Public */}
             <Route path="/" element={<Layout />}>
               <Route index element={<HomePage />} />
@@ -74,8 +77,9 @@ export default function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
-        </Web3Provider>
-      </AuthProvider>
+          </Web3Provider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

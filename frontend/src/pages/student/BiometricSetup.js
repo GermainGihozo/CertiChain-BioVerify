@@ -6,7 +6,6 @@ import { Fingerprint, CheckCircle, Trash2, Plus, AlertCircle, Monitor } from "lu
 import toast from "react-hot-toast";
 
 export default function BiometricSetup() {
-  const { user } = useAuth();
   const [credentials, setCredentials] = useState([]);
   const [loading, setLoading]         = useState(false);
   const [supported, setSupported]     = useState(false);

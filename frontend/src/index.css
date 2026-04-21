@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    @apply bg-gray-50 text-gray-900 font-sans antialiased dark:bg-gray-900 dark:text-gray-100;
   }
 }
 
@@ -12,13 +12,15 @@
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2.5 px-5 rounded-lg
            transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+           dark:bg-primary-500 dark:hover:bg-primary-600;
   }
 
   .btn-secondary {
     @apply bg-white hover:bg-gray-50 text-gray-700 font-semibold py-2.5 px-5 rounded-lg
            border border-gray-300 transition-colors duration-200
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+           dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700;
   }
 
   .btn-danger {
@@ -29,25 +31,27 @@
   .input-field {
     @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm
            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-           placeholder-gray-400 bg-white;
+           placeholder-gray-400 bg-white
+           dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500;
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6
+           dark:bg-gray-800 dark:border-gray-700;
   }
 
   .badge-valid {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
-           bg-green-100 text-green-800;
+           bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400;
   }
 
   .badge-invalid {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
-           bg-red-100 text-red-800;
+           bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400;
   }
 
   .badge-pending {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
-           bg-yellow-100 text-yellow-800;
+           bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400;
   }
 }

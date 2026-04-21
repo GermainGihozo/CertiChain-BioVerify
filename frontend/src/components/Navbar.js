@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWeb3 } from "../context/Web3Context";
-import { ShieldCheck, Menu, X, Wallet, LogOut, User } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
+import { ShieldCheck, Menu, X, Wallet, LogOut, User, Moon, Sun } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { account, connectWallet, connecting } = useWeb3();
+  const { darkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -34,20 +36,29 @@ export default function Navbar() {
       : "/student";
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary-700">
-            <ShieldCheck className="w-7 h-7 text-primary-600" />
+          <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary-700 dark:text-primary-400">
+            <ShieldCheck className="w-7 h-7 text-primary-600 dark:text-primary-500" />
             CertChain
           </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-6">
-            <Link to="/verify" className="text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors">
+            <Link to="/verify" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               Verify Certificate
             </Link>
+
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
 
             {user ? (
               <>

@@ -10,7 +10,7 @@ import {
 import toast from "react-hot-toast";
 
 export default function StudentDashboard() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const { account, connectWallet } = useWeb3();
   const [stats, setStats] = useState({ total: 0, issued: 0 });
   const [hasBiometric, setHasBiometric] = useState(false);

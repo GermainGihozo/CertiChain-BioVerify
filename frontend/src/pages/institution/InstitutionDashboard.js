@@ -5,7 +5,6 @@ import api from "../../services/api";
 import { Award, Users, Plus, CheckCircle, Clock, XCircle, ArrowRight } from "lucide-react";
 
 export default function InstitutionDashboard() {
-  const { user } = useAuth();
   const [stats, setStats] = useState({ total: 0, issued: 0, pending: 0, revoked: 0 });
   const [recent, setRecent] = useState([]);
 
