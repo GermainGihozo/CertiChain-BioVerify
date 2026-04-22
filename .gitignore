@@ -6,6 +6,10 @@ node_modules/
 .env
 */.env
 **/.env
+.env.production
+.env.local
+.env.development
+.env.test
 
 # Build outputs
 frontend/build/
@@ -27,3 +31,14 @@ Thumbs.db
 
 # Docker
 *.env.local
+
+# Backups
+backups/
+*.archive
+*.gz
+
+# Sensitive files
+**/private-keys/
+**/*.pem
+**/*.key
+**/ssl/
