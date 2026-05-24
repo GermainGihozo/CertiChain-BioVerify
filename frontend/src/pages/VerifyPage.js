@@ -38,19 +38,44 @@ export default function VerifyPage() {
   const verifyByFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Validate file type
+    if (!file.type.includes('pdf') && !file.type.includes('image')) {
+      toast.error("Please upload a PDF or image file");
+      return;
+    }
+    
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+    
     setLoading(true);
     setResult(null);
     const formData = new FormData();
     formData.append("certificate", file);
+    
     try {
       const { data } = await api.post("/verify/file", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setResult(data);
+      if (data.valid) {
+        toast.success("Certificate verified successfully!");
+      } else {
+        toast.error(data.error || "Certificate verification failed");
+      }
     } catch (err) {
-      setResult({ valid: false, error: err.response?.data?.error || "File verification failed" });
+      setResult({ 
+        valid: false, 
+        error: err.response?.data?.error || "File verification failed. Please ensure you uploaded a valid certificate PDF." 
+      });
+      toast.error("Verification failed");
     } finally {
       setLoading(false);
+      // Reset file input
+      e.target.value = '';
     }
   };
 
@@ -112,8 +137,17 @@ export default function VerifyPage() {
           <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-10 cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors">
             <Upload className="w-10 h-10 text-gray-400 mb-3" />
             <p className="text-sm font-medium text-gray-700">Upload certificate file</p>
-            <p className="text-xs text-gray-400 mt-1">PDF, PNG, JPG up to 10MB</p>
-            <input type="file" className="hidden" accept=".pdf,.png,.jpg,.jpeg" onChange={verifyByFile} />
+            <p className="text-xs text-gray-400 mt-1">PDF files up to 10MB</p>
+            <p className="text-xs text-gray-500 mt-2">
+              Download your certificate PDF and upload it here to verify
+            </p>
+            <input 
+              type="file" 
+              className="hidden" 
+              accept=".pdf,application/pdf" 
+              onChange={verifyByFile}
+              disabled={loading}
+            />
             {loading && <p className="text-sm text-primary-600 mt-3 animate-pulse">Verifying...</p>}
           </label>
         )}

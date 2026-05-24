@@ -196,7 +196,7 @@ async function verifyByHash(req, res, next) {
 
 /**
  * POST /api/verify/file
- * Verify by uploading a certificate file — checks hash.
+ * Verify by uploading a certificate file — extracts certificate ID from PDF text.
  */
 async function verifyByFile(req, res, next) {
   try {
@@ -204,31 +204,97 @@ async function verifyByFile(req, res, next) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const fileHash = hashFileBuffer(req.file.buffer);
+    // For PDF files, extract text and look for certificate ID
+    let certificateId = null;
+    
+    if (req.file.mimetype === "application/pdf") {
+      // Extract text from PDF
+      const pdfText = req.file.buffer.toString("utf-8");
+      
+      // Look for certificate ID pattern (e.g., UR-2026-6867C4BD)
+      const certIdMatch = pdfText.match(/([A-Z]{2,6}-\d{4}-[A-Z0-9]{8})/i);
+      
+      if (certIdMatch) {
+        certificateId = certIdMatch[1].toUpperCase();
+      }
+    }
 
-    // Look up by hash
-    const cert = await Certificate.findOne({ certificateHash: fileHash });
-
-    if (!cert) {
-      return res.json({
+    if (!certificateId) {
+      return res.status(400).json({
         valid: false,
-        error: "Certificate hash not found — file may be tampered",
+        error: "Could not extract certificate ID from file. Please ensure this is a valid certificate PDF.",
       });
     }
 
+    // Look up certificate by ID
+    const cert = await Certificate.findOne({ certificateId: certificateId })
+      .populate("institutionId", "name shortName website country");
+
+    if (!cert) {
+      return res.status(404).json({
+        valid: false,
+        error: "Certificate not found in database",
+      });
+    }
+
+    // Check status
+    if (cert.status !== "issued") {
+      return res.json({
+        valid: false,
+        status: cert.status,
+        error: `Certificate is ${cert.status}`,
+        certificate: {
+          certificateId: cert.certificateId,
+          studentName: cert.studentName,
+          certificateTitle: cert.certificateTitle,
+          institutionName: cert.institutionName,
+        },
+      });
+    }
+
+    // Check blockchain
     let blockchainValid = false;
+    let blockchainError = null;
+    
     try {
-      const result = await verifyCertificateOnChain(cert.certificateId, fileHash);
+      const result = await verifyCertificateOnChain(cert.certificateId, cert.certificateHash);
       blockchainValid = result.valid;
-    } catch (_) {}
+    } catch (chainErr) {
+      console.error("Blockchain check failed:", chainErr.message);
+      blockchainError = chainErr.message;
+    }
+
+    const isValid = cert.status === "issued";
+    const fullyVerified = isValid && blockchainValid;
+
+    await logActivity("CERTIFICATE_VERIFIED", {
+      certificateId: cert.certificateId,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      success: fullyVerified,
+      details: { method: "file" },
+    });
 
     res.json({
-      valid: cert.status === "issued" && blockchainValid,
-      blockchainVerified: blockchainValid,
-      certificateId: cert.certificateId,
-      studentName: cert.studentName,
-      institutionName: cert.institutionName,
+      valid: isValid,
+      fullyVerified: fullyVerified,
       status: cert.status,
+      blockchainVerified: blockchainValid,
+      blockchainError: blockchainError,
+      certificate: {
+        certificateId: cert.certificateId,
+        studentName: cert.studentName,
+        certificateTitle: cert.certificateTitle,
+        courseName: cert.courseName,
+        graduationYear: cert.graduationYear,
+        grade: cert.grade,
+        honors: cert.honors,
+        issuedAt: cert.createdAt,
+        institutionName: cert.institutionName,
+        institution: cert.institutionId,
+        blockchainTxHash: cert.blockchainTxHash,
+        isOnChain: cert.isOnChain,
+      },
     });
   } catch (err) {
     next(err);
