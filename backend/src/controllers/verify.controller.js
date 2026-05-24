@@ -2,6 +2,7 @@ const Certificate = require("../models/Certificate");
 const { verifyCertificateOnChain, getCertificateFromChain } = require("../utils/blockchain");
 const { generateCertificateHash, hashFileBuffer } = require("../utils/certificateHash");
 const { logActivity } = require("../utils/activityLogger");
+const pdfParse = require("pdf-parse");
 
 /**
  * GET /api/verify/:certId
@@ -208,14 +209,23 @@ async function verifyByFile(req, res, next) {
     let certificateId = null;
     
     if (req.file.mimetype === "application/pdf") {
-      // Extract text from PDF
-      const pdfText = req.file.buffer.toString("utf-8");
-      
-      // Look for certificate ID pattern (e.g., UR-2026-6867C4BD)
-      const certIdMatch = pdfText.match(/([A-Z]{2,6}-\d{4}-[A-Z0-9]{8})/i);
-      
-      if (certIdMatch) {
-        certificateId = certIdMatch[1].toUpperCase();
+      try {
+        // Parse PDF and extract text
+        const pdfData = await pdfParse(req.file.buffer);
+        const pdfText = pdfData.text;
+        
+        // Look for certificate ID pattern (e.g., UR-2026-6867C4BD)
+        const certIdMatch = pdfText.match(/([A-Z]{2,6}-\d{4}-[A-Z0-9]{8})/i);
+        
+        if (certIdMatch) {
+          certificateId = certIdMatch[1].toUpperCase();
+        }
+      } catch (pdfError) {
+        console.error("PDF parsing error:", pdfError.message);
+        return res.status(400).json({
+          valid: false,
+          error: "Failed to parse PDF file. Please ensure this is a valid PDF certificate.",
+        });
       }
     }
 
