@@ -45,9 +45,9 @@ export default function VerifyPage() {
       return;
     }
     
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size must be less than 10MB");
+    // Validate file size (20MB max)
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("File size must be less than 20MB");
       return;
     }
     
@@ -137,7 +137,7 @@ export default function VerifyPage() {
           <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-10 cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors">
             <Upload className="w-10 h-10 text-gray-400 mb-3" />
             <p className="text-sm font-medium text-gray-700">Upload certificate file</p>
-            <p className="text-xs text-gray-400 mt-1">PDF files up to 10MB</p>
+            <p className="text-xs text-gray-400 mt-1">PDF files up to 20MB</p>
             <p className="text-xs text-gray-500 mt-2">
               Download your certificate PDF and upload it here to verify
             </p>

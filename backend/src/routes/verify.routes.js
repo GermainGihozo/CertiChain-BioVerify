@@ -5,7 +5,7 @@ const { verifyById, verifyByHash, verifyByFile } = require("../controllers/verif
 // File upload in memory (no disk storage)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
 });
 
 // Public routes — no auth required
