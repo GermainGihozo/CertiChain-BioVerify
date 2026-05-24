@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import api from "../services/api";
 import {
   Search, CheckCircle, XCircle, Upload, Hash,
-  Building2, Calendar, Award, ShieldCheck, AlertTriangle
+  Building2, Calendar, Award, ShieldCheck, AlertTriangle, User
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -147,11 +147,11 @@ function VerificationResult({ result }) {
         <div className="bg-white rounded-xl p-5 space-y-3 text-sm">
           <DetailRow icon={Award}     label="Certificate"  value={certificate.certificateTitle} />
           <DetailRow icon={Hash}      label="ID"           value={certificate.certificateId} mono />
+          {certificate.studentName && (
+            <DetailRow icon={User}    label="Owner"        value={certificate.studentName} />
+          )}
           <DetailRow icon={Building2} label="Institution"  value={certificate.institutionName} />
           <DetailRow icon={Calendar}  label="Issued"       value={`${certificate.graduationYear} · ${new Date(certificate.issuedAt).toLocaleDateString()}`} />
-          {certificate.studentName && (
-            <DetailRow icon={Award} label="Student" value={certificate.studentName} />
-          )}
           {certificate.grade && (
             <DetailRow icon={Award} label="Grade" value={certificate.grade} />
           )}
@@ -281,6 +281,9 @@ function VerificationResult({ result }) {
       <div className="bg-white rounded-xl p-5 space-y-3 text-sm">
         <DetailRow icon={Award}     label="Certificate"  value={certificate.certificateTitle} />
         <DetailRow icon={Hash}      label="ID"           value={certificate.certificateId} mono />
+        {certificate.studentName && (
+          <DetailRow icon={User}    label="Owner"        value={certificate.studentName} />
+        )}
         <DetailRow icon={Building2} label="Institution"  value={certificate.institutionName} />
         <DetailRow icon={Calendar}  label="Issued"       value={`${certificate.graduationYear} · ${new Date(certificate.issuedAt).toLocaleDateString()}`} />
         {certificate.grade && (
