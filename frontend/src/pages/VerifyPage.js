@@ -126,21 +126,84 @@ export default function VerifyPage() {
 }
 
 function VerificationResult({ result }) {
-  const { valid, certificate, error, blockchainVerified } = result;
+  const { valid, certificate, error, message, status, blockchainVerified } = result;
 
   if (!valid) {
+    // Determine color scheme based on status
+    const getStatusColor = () => {
+      if (status === "pending_student" || status === "pending_admin") return "amber";
+      if (status === "rejected" || status === "revoked") return "red";
+      return "red";
+    };
+
+    const color = getStatusColor();
+    const colorClasses = {
+      red: {
+        card: "border-red-200 bg-red-50",
+        icon: "text-red-600",
+        title: "text-red-800",
+        text: "text-red-600",
+        badge: "bg-red-100 text-red-700",
+      },
+      amber: {
+        card: "border-amber-200 bg-amber-50",
+        icon: "text-amber-600",
+        title: "text-amber-800",
+        text: "text-amber-600",
+        badge: "bg-amber-100 text-amber-700",
+      },
+    };
+
+    const colors = colorClasses[color];
+
     return (
-      <div className="card border-red-200 bg-red-50">
+      <div className={`card ${colors.card}`}>
         <div className="flex items-center gap-3 mb-3">
-          <XCircle className="w-8 h-8 text-red-600" />
+          {status === "pending_student" || status === "pending_admin" ? (
+            <AlertTriangle className={`w-8 h-8 ${colors.icon}`} />
+          ) : (
+            <XCircle className={`w-8 h-8 ${colors.icon}`} />
+          )}
           <div>
-            <h2 className="text-lg font-bold text-red-800">Certificate Invalid</h2>
-            <p className="text-sm text-red-600">{error || "This certificate could not be verified."}</p>
+            <h2 className={`text-lg font-bold ${colors.title}`}>
+              {status === "pending_student" && "Certificate Pending Student Confirmation"}
+              {status === "pending_admin" && "Certificate Pending Admin Approval"}
+              {status === "rejected" && "Certificate Rejected"}
+              {status === "revoked" && "Certificate Revoked"}
+              {!status && "Certificate Invalid"}
+            </h2>
+            <p className={`text-sm ${colors.text}`}>
+              {message || error || "This certificate could not be verified."}
+            </p>
           </div>
         </div>
-        {certificate?.isRevoked && (
-          <div className="mt-3 bg-red-100 rounded-lg p-3 text-sm text-red-700">
-            <strong>Revoked:</strong> {certificate.revocationReason}
+
+        {/* Show certificate details if available */}
+        {certificate && (
+          <div className="mt-4 bg-white rounded-xl p-4 space-y-2 text-sm">
+            <DetailRow icon={Hash} label="ID" value={certificate.certificateId} mono />
+            <DetailRow icon={Award} label="Certificate" value={certificate.certificateTitle} />
+            <DetailRow icon={Building2} label="Institution" value={certificate.institutionName} />
+            {certificate.courseName && (
+              <DetailRow icon={Award} label="Course" value={certificate.courseName} />
+            )}
+            {certificate.studentName && (
+              <DetailRow icon={Award} label="Student" value={certificate.studentName} />
+            )}
+          </div>
+        )}
+
+        {/* Status badge */}
+        {status && (
+          <div className={`mt-4 inline-flex items-center gap-2 text-sm font-medium ${colors.badge} rounded-lg px-4 py-2`}>
+            Status: {status.replace(/_/g, " ").toUpperCase()}
+          </div>
+        )}
+
+        {/* Revocation/Rejection reason */}
+        {(certificate?.revocationReason || certificate?.rejectionReason) && (
+          <div className={`mt-3 ${colors.badge} rounded-lg p-3 text-sm`}>
+            <strong>Reason:</strong> {certificate.revocationReason || certificate.rejectionReason}
           </div>
         )}
       </div>

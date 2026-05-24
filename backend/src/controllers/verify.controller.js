@@ -19,10 +19,79 @@ async function verifyById(req, res, next) {
       return res.status(404).json({
         valid: false,
         error: "Certificate not found in database",
+        suggestion: "Please check the certificate ID and try again. Certificate IDs are case-insensitive.",
       });
     }
 
-    // Check blockchain
+    // Check certificate status first
+    if (cert.status === "pending_student") {
+      return res.status(200).json({
+        valid: false,
+        status: cert.status,
+        error: "Certificate is pending student confirmation",
+        message: "This certificate has been issued by the institution but is awaiting biometric confirmation from the student.",
+        certificate: {
+          certificateId: cert.certificateId,
+          studentName: cert.studentName,
+          certificateTitle: cert.certificateTitle,
+          courseName: cert.courseName,
+          institutionName: cert.institutionName,
+        },
+      });
+    }
+
+    if (cert.status === "pending_admin") {
+      return res.status(200).json({
+        valid: false,
+        status: cert.status,
+        error: "Certificate is pending admin approval",
+        message: "This certificate has been confirmed by the student but is awaiting final approval from the system administrator.",
+        certificate: {
+          certificateId: cert.certificateId,
+          studentName: cert.studentName,
+          certificateTitle: cert.certificateTitle,
+          courseName: cert.courseName,
+          institutionName: cert.institutionName,
+        },
+      });
+    }
+
+    if (cert.status === "rejected") {
+      return res.status(200).json({
+        valid: false,
+        status: cert.status,
+        error: "Certificate has been rejected",
+        message: cert.rejectionReason || "This certificate was rejected during the approval process.",
+        certificate: {
+          certificateId: cert.certificateId,
+          studentName: cert.studentName,
+          certificateTitle: cert.certificateTitle,
+          courseName: cert.courseName,
+          institutionName: cert.institutionName,
+          rejectedAt: cert.rejectedAt,
+        },
+      });
+    }
+
+    if (cert.status === "revoked") {
+      return res.status(200).json({
+        valid: false,
+        status: cert.status,
+        error: "Certificate has been revoked",
+        message: cert.revocationReason || "This certificate has been revoked and is no longer valid.",
+        certificate: {
+          certificateId: cert.certificateId,
+          studentName: cert.studentName,
+          certificateTitle: cert.certificateTitle,
+          courseName: cert.courseName,
+          institutionName: cert.institutionName,
+          revokedAt: cert.revokedAt,
+          revocationReason: cert.revocationReason,
+        },
+      });
+    }
+
+    // Check blockchain only for issued certificates
     let blockchainValid = false;
     let blockchainData = null;
 
