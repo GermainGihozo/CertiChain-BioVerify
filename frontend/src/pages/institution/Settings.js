@@ -37,17 +37,6 @@ export default function Settings() {
     try {
       const { data } = await api.get(`/institutions/${user.institutionId}`);
       setInstitution(data.institution);
-    } catch (err) {
-      toast.error("Failed to load institution details");
-    }
-  };
-
-  useEffect(() => {
-    if (user?.institutionId) {
-      loadInstitution();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
       setInstitutionForm({
         name: data.institution.name || "",
         shortName: data.institution.shortName || "",
@@ -59,6 +48,13 @@ export default function Settings() {
       toast.error("Failed to load institution details");
     }
   };
+
+  useEffect(() => {
+    if (user?.institutionId) {
+      loadInstitution();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
