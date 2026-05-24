@@ -94,6 +94,7 @@ async function verifyById(req, res, next) {
     // Check blockchain only for issued certificates
     let blockchainValid = false;
     let blockchainData = null;
+    let blockchainError = null;
 
     try {
       const result = await verifyCertificateOnChain(certId.toUpperCase(), cert.certificateHash);
@@ -101,22 +102,27 @@ async function verifyById(req, res, next) {
       blockchainData = result;
     } catch (chainErr) {
       console.error("Blockchain check failed:", chainErr.message);
+      blockchainError = chainErr.message;
     }
 
-    const isValid = cert.status === "issued" && blockchainValid;
+    // For issued certificates, if blockchain is not available, still show as valid with warning
+    const isValid = cert.status === "issued";
+    const fullyVerified = isValid && blockchainValid;
 
     await logActivity("CERTIFICATE_VERIFIED", {
       certificateId: certId,
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
-      success: isValid,
-      details: { method: "id" },
+      success: fullyVerified,
+      details: { method: "id", blockchainVerified: blockchainValid },
     });
 
     res.json({
       valid: isValid,
+      fullyVerified: fullyVerified,
       status: cert.status,
       blockchainVerified: blockchainValid,
+      blockchainError: blockchainError,
       certificate: {
         certificateId: cert.certificateId,
         studentName: cert.studentName,
@@ -129,6 +135,7 @@ async function verifyById(req, res, next) {
         institutionName: cert.institutionName,
         institution: cert.institutionId,
         blockchainTxHash: cert.blockchainTxHash,
+        isOnChain: cert.isOnChain,
         isRevoked: cert.status === "revoked",
         revocationReason: cert.revocationReason,
       },

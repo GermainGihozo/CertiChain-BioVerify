@@ -126,7 +126,63 @@ export default function VerifyPage() {
 }
 
 function VerificationResult({ result }) {
-  const { valid, certificate, error, message, status, blockchainVerified } = result;
+  const { valid, fullyVerified, certificate, error, message, status, blockchainVerified, blockchainError } = result;
+
+  // If certificate is issued but blockchain verification failed
+  if (valid && !blockchainVerified && status === "issued") {
+    return (
+      <div className="card border-amber-200 bg-amber-50">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <AlertTriangle className="w-10 h-10 text-amber-600 flex-shrink-0" />
+          <div>
+            <h2 className="text-xl font-bold text-amber-800">Certificate Verified (Database Only)</h2>
+            <p className="text-sm text-amber-600">
+              This certificate is valid in our database but blockchain verification is currently unavailable.
+            </p>
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="bg-white rounded-xl p-5 space-y-3 text-sm">
+          <DetailRow icon={Award}     label="Certificate"  value={certificate.certificateTitle} />
+          <DetailRow icon={Hash}      label="ID"           value={certificate.certificateId} mono />
+          <DetailRow icon={Building2} label="Institution"  value={certificate.institutionName} />
+          <DetailRow icon={Calendar}  label="Issued"       value={`${certificate.graduationYear} · ${new Date(certificate.issuedAt).toLocaleDateString()}`} />
+          {certificate.studentName && (
+            <DetailRow icon={Award} label="Student" value={certificate.studentName} />
+          )}
+          {certificate.grade && (
+            <DetailRow icon={Award} label="Grade" value={certificate.grade} />
+          )}
+        </div>
+
+        {/* Warning badge */}
+        <div className="mt-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-100 rounded-lg px-4 py-2.5">
+          <AlertTriangle className="w-4 h-4" />
+          <div className="flex-1">
+            <span className="font-medium">Blockchain verification unavailable</span>
+            {blockchainError && (
+              <p className="text-xs mt-1 text-amber-600">
+                Reason: {blockchainError}
+              </p>
+            )}
+            {!certificate.isOnChain && (
+              <p className="text-xs mt-1 text-amber-600">
+                This certificate has not been recorded on the blockchain yet.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Database verified badge */}
+        <div className="mt-2 flex items-center gap-2 text-sm text-green-700 bg-green-100 rounded-lg px-4 py-2.5">
+          <CheckCircle className="w-4 h-4" />
+          <span className="font-medium">Database verified ✓</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!valid) {
     // Determine color scheme based on status
