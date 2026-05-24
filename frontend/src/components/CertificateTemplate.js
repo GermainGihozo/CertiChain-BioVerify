@@ -7,7 +7,6 @@ export default function CertificateTemplate({ certificate, institution, showQR =
 
   return (
     <div
-      id="certificate-template"
       className="relative w-full max-w-4xl mx-auto bg-white p-12 border-8 border-double border-primary-700"
       style={{
         backgroundImage: `

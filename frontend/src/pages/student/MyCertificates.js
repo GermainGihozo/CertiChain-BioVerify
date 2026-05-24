@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import { authenticateBiometric } from "../../services/webauthn";
+import { downloadCertificateAsPDF } from "../../utils/pdfGenerator";
 import CertificateCard from "../../components/CertificateCard";
+import CertificateTemplate from "../../components/CertificateTemplate";
 import PageHeader from "../../components/PageHeader";
-import { Award, RefreshCw, Fingerprint, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Award, RefreshCw, Fingerprint, Clock, CheckCircle, AlertTriangle, Download } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function MyCertificates() {
@@ -12,7 +14,9 @@ export default function MyCertificates() {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(null);
+  const [downloading, setDownloading] = useState(null);
   const [showQR, setShowQR] = useState({});
+  const [showCertificate, setShowCertificate] = useState(null);
 
   useEffect(() => { loadCertificates(); }, []);
 
@@ -57,6 +61,29 @@ export default function MyCertificates() {
   };
 
   const toggleQR = (id) => setShowQR((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const handleDownloadPDF = async (cert) => {
+    setDownloading(cert._id);
+    setShowCertificate(cert);
+    
+    try {
+      // Wait for the certificate template to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await downloadCertificateAsPDF(
+        "certificate-for-download",
+        `${cert.certificateId}_${cert.studentName.replace(/\s+/g, "_")}`
+      );
+      
+      toast.success("Certificate downloaded successfully!");
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Failed to download certificate");
+    } finally {
+      setDownloading(null);
+      setShowCertificate(null);
+    }
+  };
 
   const pendingStudent = certificates.filter((c) => c.status === "pending_student");
   const pendingAdmin = certificates.filter((c) => c.status === "pending_admin");
@@ -211,12 +238,22 @@ export default function MyCertificates() {
                 {issued.map((cert) => (
                   <div key={cert._id}>
                     <CertificateCard certificate={cert} showQR={showQR[cert._id]} />
-                    <button
-                      onClick={() => toggleQR(cert._id)}
-                      className="mt-2 text-xs text-primary-600 hover:underline"
-                    >
-                      {showQR[cert._id] ? "Hide QR Code" : "Show QR Code"}
-                    </button>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => toggleQR(cert._id)}
+                        className="flex-1 text-xs text-primary-600 hover:underline"
+                      >
+                        {showQR[cert._id] ? "Hide QR Code" : "Show QR Code"}
+                      </button>
+                      <button
+                        onClick={() => handleDownloadPDF(cert)}
+                        disabled={downloading === cert._id}
+                        className="flex-1 flex items-center justify-center gap-1 text-xs bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <Download className="w-3 h-3" />
+                        {downloading === cert._id ? "Generating..." : "Download PDF"}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -267,6 +304,19 @@ export default function MyCertificates() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Hidden certificate template for PDF generation */}
+      {showCertificate && (
+        <div className="fixed -left-[9999px] top-0">
+          <div id="certificate-for-download">
+            <CertificateTemplate
+              certificate={showCertificate}
+              institution={{ name: showCertificate.institutionName }}
+              showQR={true}
+            />
+          </div>
         </div>
       )}
     </div>
