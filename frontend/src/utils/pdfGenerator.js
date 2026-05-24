@@ -13,9 +13,6 @@ export async function downloadCertificateAsPDF(elementId, filename, certificateI
     if (!element) {
       throw new Error("Certificate element not found");
     }
-
-    // Show loading state
-    const originalContent = element.innerHTML;
     
     // Capture the element as canvas with high quality
     const canvas = await html2canvas(element, {

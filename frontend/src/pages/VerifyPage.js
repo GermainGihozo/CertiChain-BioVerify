@@ -160,7 +160,7 @@ export default function VerifyPage() {
 }
 
 function VerificationResult({ result }) {
-  const { valid, fullyVerified, certificate, error, message, status, blockchainVerified, blockchainError } = result;
+  const { valid, certificate, error, message, status, blockchainVerified, blockchainError } = result;
 
   // If certificate is issued but blockchain verification failed
   if (valid && !blockchainVerified && status === "issued") {
