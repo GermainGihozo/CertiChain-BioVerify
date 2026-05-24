@@ -23,6 +23,8 @@ A full-stack decentralized application for issuing, owning, and verifying academ
 
 ## Quick Start
 
+### Local Development
+
 ### 1. Blockchain (Smart Contracts)
 ```bash
 cd blockchain
@@ -47,6 +49,48 @@ npm install
 cp .env.example .env      # Fill in your values
 npm start
 ```
+
+---
+
+## 🚀 Production Deployment
+
+Ready to deploy to production? We've got you covered!
+
+### Quick Deploy to Vercel + MongoDB Atlas
+
+**Start here:** 📖 [START_HERE.md](START_HERE.md)
+
+This guide will walk you through deploying your application to production in ~40 minutes.
+
+### Deployment Resources
+
+- 📖 **[START_HERE.md](START_HERE.md)** - Step-by-step deployment guide (recommended)
+- ⚡ **[QUICK_DEPLOY.md](QUICK_DEPLOY.md)** - Quick reference for common commands
+- ✅ **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Detailed deployment checklist
+- 📚 **[VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)** - Comprehensive Vercel guide
+- 📊 **[DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)** - Overview and strategy
+- 🔧 **[deploy.ps1](deploy.ps1)** - Interactive deployment helper script
+
+### Deployment Options
+
+1. **Vercel + MongoDB Atlas** (Recommended)
+   - Free tier available
+   - Serverless architecture
+   - Automatic scaling
+   - Global CDN
+   - See [START_HERE.md](START_HERE.md)
+
+2. **VPS Deployment**
+   - Full control
+   - Traditional hosting
+   - See [DEPLOYMENT.md](DEPLOYMENT.md)
+
+3. **AWS Deployment**
+   - Enterprise-grade
+   - Advanced features
+   - See [DEPLOYMENT.md](DEPLOYMENT.md)
+
+---
 
 ## Environment Variables
 

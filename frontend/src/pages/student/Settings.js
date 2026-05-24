@@ -33,7 +33,7 @@ export default function Settings() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await api.put("/users/profile", profileForm);
+      await api.put("/users/profile", profileForm);
       toast.success("Profile updated successfully!");
       await refreshUser();
     } catch (err) {

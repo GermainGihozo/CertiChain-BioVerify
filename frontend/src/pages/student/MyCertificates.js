@@ -72,7 +72,8 @@ export default function MyCertificates() {
       
       await downloadCertificateAsPDF(
         "certificate-for-download",
-        `${cert.certificateId}_${cert.studentName.replace(/\s+/g, "_")}`
+        `${cert.certificateId}_${cert.studentName.replace(/\s+/g, "_")}`,
+        cert.certificateId // Pass certificate ID for embedding
       );
       
       toast.success("Certificate downloaded successfully!");

@@ -201,6 +201,12 @@ async function verifyByHash(req, res, next) {
  */
 async function verifyByFile(req, res, next) {
   try {
+    console.log("File upload received:", req.file ? {
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      originalname: req.file.originalname
+    } : "No file");
+    
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
@@ -210,18 +216,32 @@ async function verifyByFile(req, res, next) {
     
     if (req.file.mimetype === "application/pdf") {
       try {
-        // Parse PDF and extract text
-        const pdfData = await pdfParse(req.file.buffer);
+        console.log("Parsing PDF...");
+        // Parse PDF and extract text - pdf-parse returns a promise
+        const dataBuffer = req.file.buffer;
+        const pdfData = await pdfParse(dataBuffer);
         const pdfText = pdfData.text;
         
-        // Look for certificate ID pattern (e.g., UR-2026-6867C4BD)
-        const certIdMatch = pdfText.match(/([A-Z]{2,6}-\d{4}-[A-Z0-9]{8})/i);
+        console.log("PDF text extracted, length:", pdfText.length);
+        console.log("First 500 chars:", pdfText.substring(0, 500));
+        
+        // Look for embedded certificate ID pattern (CERTIFICATE_ID:XXX-XXXX-XXXXXXXX)
+        let certIdMatch = pdfText.match(/CERTIFICATE_ID:([A-Z]{2,6}-\d{4}-[A-Z0-9]{8})/i);
+        
+        // If not found, try the regular pattern in case it's a text-based PDF
+        if (!certIdMatch) {
+          certIdMatch = pdfText.match(/([A-Z]{2,6}-\d{4}-[A-Z0-9]{8})/i);
+        }
         
         if (certIdMatch) {
           certificateId = certIdMatch[1].toUpperCase();
+          console.log("Certificate ID found:", certificateId);
+        } else {
+          console.log("No certificate ID pattern found in PDF text");
         }
       } catch (pdfError) {
-        console.error("PDF parsing error:", pdfError.message);
+        console.error("PDF parsing error:", pdfError);
+        console.error("Error stack:", pdfError.stack);
         return res.status(400).json({
           valid: false,
           error: "Failed to parse PDF file. Please ensure this is a valid PDF certificate.",

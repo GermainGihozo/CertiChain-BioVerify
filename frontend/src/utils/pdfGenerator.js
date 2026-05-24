@@ -5,8 +5,9 @@ import jsPDF from "jspdf";
  * Generate and download a PDF certificate
  * @param {string} elementId - ID of the HTML element to convert to PDF
  * @param {string} filename - Name of the PDF file (without extension)
+ * @param {string} certificateId - Certificate ID to embed as text in PDF
  */
-export async function downloadCertificateAsPDF(elementId, filename) {
+export async function downloadCertificateAsPDF(elementId, filename, certificateId = null) {
   try {
     const element = document.getElementById(elementId);
     if (!element) {
@@ -38,6 +39,13 @@ export async function downloadCertificateAsPDF(elementId, filename) {
     // Add image to PDF
     const imgData = canvas.toDataURL("image/png");
     pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+    // Add certificate ID as invisible text for verification
+    if (certificateId) {
+      pdf.setFontSize(1); // Very small font
+      pdf.setTextColor(255, 255, 255); // White text (invisible)
+      pdf.text(`CERTIFICATE_ID:${certificateId}`, 0, 0);
+    }
 
     // Save PDF
     pdf.save(`${filename}.pdf`);
