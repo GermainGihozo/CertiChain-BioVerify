@@ -17,24 +17,28 @@ async function syncCertificates() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("✅ Connected to database\n");
 
-    // Find issued certificates not on blockchain
+    // Find issued certificates (including those marked as on chain but may be on old chain)
     const certificates = await Certificate.find({
       status: "issued",
-      isOnChain: { $ne: true },
     });
 
     if (certificates.length === 0) {
-      console.log("✅ All issued certificates are already on blockchain!");
+      console.log("❌ No issued certificates found!");
       process.exit(0);
     }
 
-    console.log(`📋 Found ${certificates.length} certificate(s) to sync:\n`);
+    console.log(`📋 Found ${certificates.length} issued certificate(s):\n`);
+
+    let syncedCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
 
     for (const cert of certificates) {
       console.log(`📄 Certificate: ${cert.certificateId}`);
       console.log(`   Student: ${cert.studentName}`);
       console.log(`   Course: ${cert.courseName}`);
       console.log(`   Institution: ${cert.institutionName}`);
+      console.log(`   Current status: ${cert.isOnChain ? 'On chain' : 'Not on chain'}`);
 
       try {
         console.log(`   🔗 Recording on blockchain...`);
@@ -57,12 +61,18 @@ async function syncCertificates() {
 
         console.log(`   ✅ Success! TX: ${txHash}`);
         console.log(`   Block: ${blockNumber}\n`);
+        syncedCount++;
       } catch (err) {
         console.error(`   ❌ Failed: ${err.message}\n`);
+        failedCount++;
       }
     }
 
-    console.log("✅ Sync completed!");
+    console.log("\n" + "=".repeat(50));
+    console.log(`✅ Sync completed!`);
+    console.log(`   Synced: ${syncedCount}`);
+    console.log(`   Failed: ${failedCount}`);
+    console.log("=".repeat(50));
     process.exit(0);
   } catch (err) {
     console.error("❌ Error:", err.message);
