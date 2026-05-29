@@ -42,3 +42,5 @@ backups/
 **/*.pem
 **/*.key
 **/ssl/
+.vercel
+.env*
