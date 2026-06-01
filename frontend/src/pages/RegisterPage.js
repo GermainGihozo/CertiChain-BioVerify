@@ -15,6 +15,7 @@ export default function RegisterPage() {
     fullName: "",
     email: "",
     password: "",
+    role: "student",
     studentId: "",
     walletAddress: "",
   });
@@ -38,8 +39,16 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(form);
-      toast.success("Account created! Set up your biometrics next.");
-      navigate("/student/biometric-setup");
+      toast.success("Account created successfully!");
+      
+      // Navigate based on role
+      if (form.role === "student") {
+        navigate("/student/biometric-setup");
+      } else if (form.role === "hiring_manager") {
+        navigate("/hiring-manager");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       toast.error(err.response?.data?.error || "Registration failed");
     } finally {
@@ -54,12 +63,30 @@ export default function RegisterPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-100 rounded-2xl mb-4">
             <ShieldCheck className="w-8 h-8 text-primary-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create Student Account</h1>
-          <p className="text-gray-500 mt-1 text-sm">Register to receive and manage your certificates</p>
+          <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+          <p className="text-gray-500 mt-1 text-sm">Register as a student or hiring manager</p>
         </div>
 
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Account Type</label>
+              <select
+                className="input-field"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                required
+              >
+                <option value="student">Student</option>
+                <option value="hiring_manager">Hiring Manager</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {form.role === "student"
+                  ? "For students receiving certificates"
+                  : "For employers verifying candidate certificates"}
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
               <input
@@ -85,16 +112,20 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Student ID (optional)</label>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="STU-2024-001"
-                value={form.studentId}
-                onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-              />
-            </div>
+            {form.role === "student" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Student ID (optional)
+                </label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="STU-2024-001"
+                  value={form.studentId}
+                  onChange={(e) => setForm({ ...form, studentId: e.target.value })}
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
@@ -119,26 +150,28 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Wallet */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Wallet Address (optional)
-              </label>
-              {form.walletAddress ? (
-                <div className="input-field bg-green-50 border-green-300 text-green-800 font-mono text-xs">
-                  {form.walletAddress}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleConnectWallet}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg py-2.5 text-sm text-gray-500 hover:border-primary-400 hover:text-primary-600 transition-colors"
-                >
-                  <Wallet className="w-4 h-4" />
-                  Connect MetaMask Wallet
-                </button>
-              )}
-            </div>
+            {/* Wallet - Only for students */}
+            {form.role === "student" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Wallet Address (optional)
+                </label>
+                {form.walletAddress ? (
+                  <div className="input-field bg-green-50 border-green-300 text-green-800 font-mono text-xs">
+                    {form.walletAddress}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleConnectWallet}
+                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg py-2.5 text-sm text-gray-500 hover:border-primary-400 hover:text-primary-600 transition-colors"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    Connect MetaMask Wallet
+                  </button>
+                )}
+              </div>
+            )}
 
             <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
               {loading ? "Creating account..." : "Create Account"}

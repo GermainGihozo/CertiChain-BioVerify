@@ -6,7 +6,7 @@ const { logActivity } = require("../utils/activityLogger");
 
 /**
  * POST /api/auth/register
- * Register a new student account.
+ * Register a new student or hiring manager account.
  */
 async function register(req, res, next) {
   try {
@@ -15,26 +15,31 @@ async function register(req, res, next) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { fullName, email, password, studentId, walletAddress } = req.body;
+    const { fullName, email, password, studentId, walletAddress, role } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(409).json({ error: "Email already registered" });
     }
 
+    // Validate role - only allow student and hiring_manager for public registration
+    const allowedRoles = ["student", "hiring_manager"];
+    const userRole = role && allowedRoles.includes(role) ? role : "student";
+
     const user = await User.create({
       fullName,
       email,
       password,
-      studentId,
-      walletAddress: walletAddress?.toLowerCase(),
-      role: "student",
+      studentId: userRole === "student" ? studentId : undefined,
+      walletAddress: userRole === "student" && walletAddress ? walletAddress.toLowerCase() : undefined,
+      role: userRole,
     });
 
     const token = generateToken(user._id, user.role);
 
     await logActivity("USER_REGISTERED", {
       userId: user._id,
+      role: user.role,
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
     });

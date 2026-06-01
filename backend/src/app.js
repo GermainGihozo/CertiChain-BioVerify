@@ -11,6 +11,7 @@ const certificateRoutes = require("./routes/certificate.routes");
 const verifyRoutes      = require("./routes/verify.routes");
 const webauthnRoutes    = require("./routes/webauthn.routes");
 const adminRoutes       = require("./routes/admin.routes");
+const verificationRequestRoutes = require("./routes/verificationRequest.routes");
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -18,12 +19,50 @@ const app = express();
 
 // ─── Security ─────────────────────────────────────────────────────────────────
 app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    credentials: true,
-  })
-);
+
+// CORS Configuration
+// If FRONTEND_URL is set and different from backend, use it
+// Otherwise, allow same-origin (for monorepo deployments)
+const frontendUrl = process.env.FRONTEND_URL;
+
+if (frontendUrl && frontendUrl !== process.env.BACKEND_URL) {
+  // Separate frontend and backend deployments
+  const allowedOrigins = [
+    frontendUrl,
+    "http://localhost:3000",
+    "http://localhost:5000",
+  ].filter(Boolean);
+
+  app.use(
+    cors({
+      origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          console.log(`CORS blocked origin: ${origin}`);
+          console.log(`Allowed origins: ${allowedOrigins.join(", ")}`);
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  );
+} else {
+  // Monorepo deployment - same origin, allow all
+  app.use(
+    cors({
+      origin: true, // Allow all origins for same-domain deployment
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  );
+}
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const limiter = rateLimit({
@@ -55,6 +94,7 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/verify",       verifyRoutes);
 app.use("/api/webauthn",     webauthnRoutes);
 app.use("/api/admin",        adminRoutes);
+app.use("/api/verification-requests", verificationRequestRoutes);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {

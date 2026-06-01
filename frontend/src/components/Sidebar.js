@@ -14,6 +14,8 @@ import {
   FileText,
   Search,
   ChevronRight,
+  Mail,
+  Plus,
 } from "lucide-react";
 
 const navigationConfig = {
@@ -29,6 +31,12 @@ const navigationConfig = {
       path: "/student/certificates",
       icon: Award,
       description: "View and download certificates",
+    },
+    {
+      label: "Verification Requests",
+      path: "/student/verification-requests",
+      icon: Mail,
+      description: "Employer verification requests",
     },
     {
       label: "Verify Ownership",
@@ -73,6 +81,32 @@ const navigationConfig = {
       path: "/institution/settings",
       icon: Settings,
       description: "Institution profile",
+    },
+  ],
+  hiring_manager: [
+    {
+      label: "Dashboard",
+      path: "/hiring-manager",
+      icon: LayoutDashboard,
+      description: "Overview and statistics",
+    },
+    {
+      label: "Verification Requests",
+      path: "/hiring-manager/requests",
+      icon: FileText,
+      description: "Manage verification requests",
+    },
+    {
+      label: "New Request",
+      path: "/hiring-manager/new-request",
+      icon: Plus,
+      description: "Create verification request",
+    },
+    {
+      label: "Settings",
+      path: "/hiring-manager/settings",
+      icon: Settings,
+      description: "Account settings",
     },
   ],
   admin: [
@@ -131,7 +165,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const navigation = user ? navigationConfig[user.role] || [] : publicLinks;
 
   const isActive = (path) => {
-    if (path === "/student" || path === "/institution" || path === "/admin") {
+    if (path === "/student" || path === "/institution" || path === "/admin" || path === "/hiring-manager") {
       return location.pathname === path;
     }
     return location.pathname.startsWith(path);
@@ -249,6 +283,15 @@ export default function Sidebar({ isOpen, onClose }) {
                   >
                     <Upload className="w-4 h-4" />
                     Quick Issue
+                  </Link>
+                )}
+                {user.role === "hiring_manager" && (
+                  <Link
+                    to="/hiring-manager/new-request"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    New Request
                   </Link>
                 )}
                 {user.role === "admin" && (

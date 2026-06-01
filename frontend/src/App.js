@@ -14,10 +14,17 @@ import MyCertificates      from "./pages/student/MyCertificates";
 import OwnershipVerify     from "./pages/student/OwnershipVerify";
 import BiometricSetup      from "./pages/student/BiometricSetup";
 import StudentSettings     from "./pages/student/Settings";
+import VerificationRequests from "./pages/student/VerificationRequests";
+import VerificationRequestDetail from "./pages/student/VerificationRequestDetail";
 import InstitutionDashboard from "./pages/institution/InstitutionDashboard";
 import IssueCertificate    from "./pages/institution/IssueCertificate";
 import ManageStudents      from "./pages/institution/ManageStudents";
 import InstitutionSettings from "./pages/institution/Settings";
+import HiringManagerDashboard from "./pages/hiring-manager/Dashboard";
+import HiringManagerRequests from "./pages/hiring-manager/Requests";
+import HiringManagerNewRequest from "./pages/hiring-manager/NewRequest";
+import HiringManagerRequestDetail from "./pages/hiring-manager/RequestDetail";
+import HiringManagerSettings from "./pages/hiring-manager/Settings";
 import AdminDashboard      from "./pages/admin/AdminDashboard";
 import ManageInstitutions  from "./pages/admin/ManageInstitutions";
 import ManageUsers         from "./pages/admin/ManageUsers";
@@ -68,6 +75,8 @@ export default function App() {
             <Route path="/student" element={<ProtectedRoute roles={["student"]}><DashboardLayout /></ProtectedRoute>}>
               <Route index element={<StudentDashboard />} />
               <Route path="certificates" element={<MyCertificates />} />
+              <Route path="verification-requests" element={<VerificationRequests />} />
+              <Route path="verification-requests/:id" element={<VerificationRequestDetail />} />
               <Route path="verify-ownership" element={<OwnershipVerify />} />
               <Route path="biometric-setup" element={<BiometricSetup />} />
               <Route path="settings" element={<StudentSettings />} />
@@ -79,6 +88,15 @@ export default function App() {
               <Route path="issue" element={<IssueCertificate />} />
               <Route path="students" element={<ManageStudents />} />
               <Route path="settings" element={<InstitutionSettings />} />
+            </Route>
+
+            {/* Hiring Manager Dashboard */}
+            <Route path="/hiring-manager" element={<ProtectedRoute roles={["hiring_manager"]}><DashboardLayout /></ProtectedRoute>}>
+              <Route index element={<HiringManagerDashboard />} />
+              <Route path="requests" element={<HiringManagerRequests />} />
+              <Route path="requests/:id" element={<HiringManagerRequestDetail />} />
+              <Route path="new-request" element={<HiringManagerNewRequest />} />
+              <Route path="settings" element={<HiringManagerSettings />} />
             </Route>
 
             {/* Admin Dashboard */}
