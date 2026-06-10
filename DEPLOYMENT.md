@@ -1,491 +1,186 @@
-# CertiChain-BioVerify Deployment Guide
+# 🚀 Vercel Deployment Guide
 
-This guide covers deploying the CertiChain-BioVerify application to production.
+## Step-by-Step Deployment
 
-## Table of Contents
-1. [Prerequisites](#prerequisites)
-2. [Deployment Options](#deployment-options)
-3. [VPS Deployment (Recommended)](#vps-deployment)
-4. [Vercel + MongoDB Atlas](#vercel--mongodb-atlas)
-5. [AWS Deployment](#aws-deployment)
-6. [Environment Configuration](#environment-configuration)
-7. [Post-Deployment](#post-deployment)
+### 1. Push to GitHub ✅ (Already Done)
+Your code is already on GitHub: `GermainGihozo/CertiChain-BioVerify`
 
----
+### 2. Deploy to Vercel
 
-## Prerequisites
+#### Option A: Deploy via Vercel Dashboard (Recommended)
+1. Go to https://vercel.com/dashboard
+2. Click **"Add New Project"**
+3. Import your GitHub repository: `GermainGihozo/CertiChain-BioVerify`
+4. Vercel will auto-detect the configuration from `vercel.json`
+5. Click **"Deploy"**
+6. Wait for the build to complete
 
-- Domain name (e.g., certchain.com)
-- SSL certificate (Let's Encrypt recommended)
-- Server with:
-  - 2GB+ RAM
-  - 20GB+ storage
-  - Ubuntu 22.04 LTS (recommended)
-  - Docker & Docker Compose installed
-
----
-
-## Deployment Options
-
-### Option 1: VPS Deployment (DigitalOcean, Linode, AWS EC2)
-**Best for:** Full control, blockchain integration, production use
-**Cost:** ~$12-20/month
-
-### Option 2: Vercel + MongoDB Atlas
-**Best for:** Quick deployment, serverless
-**Cost:** Free tier available
-**Limitation:** Blockchain node needs separate hosting
-
-### Option 3: AWS (ECS/EKS)
-**Best for:** Enterprise, scalability
-**Cost:** Variable, ~$50+/month
-
----
-
-## VPS Deployment
-
-### Step 1: Server Setup
-
+#### Option B: Deploy via CLI
 ```bash
-# SSH into your server
-ssh root@your-server-ip
-
-# Update system
-apt update && apt upgrade -y
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sh get-docker.sh
-
-# Install Docker Compose
-apt install docker-compose -y
-
-# Install Git
-apt install git -y
-
-# Create app user
-adduser certchain
-usermod -aG docker certchain
-su - certchain
+npm install -g vercel
+vercel --prod
 ```
 
-### Step 2: Clone Repository
+### 3. Set Environment Variables (IMPORTANT!)
 
-```bash
-cd ~
-git clone https://github.com/GermainGihozo/CertiChain-BioVerify.git
-cd CertiChain-BioVerify
-```
+After the first deployment, go to your project settings and add these environment variables:
 
-### Step 3: Configure Environment
-
-```bash
-# Create production environment file
-cp .env.example .env.production
-
-# Edit with your production values
-nano .env.production
-```
-
-**Required environment variables:**
+**Go to: Project Settings → Environment Variables → Add for Production**
 
 ```env
-# Domain Configuration
-DOMAIN=certchain.yourdomain.com
-WEBAUTHN_RP_ID=certchain.yourdomain.com
-WEBAUTHN_ORIGIN=https://certchain.yourdomain.com
-FRONTEND_URL=https://certchain.yourdomain.com
-
-# Security
-JWT_SECRET=<generate-strong-random-string-64-chars>
-
-# Blockchain
-CONTRACT_ADDRESS=<your-deployed-contract-address>
-RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/<your-api-key>
-ADMIN_WALLET_PRIVATE_KEY=<your-admin-wallet-private-key>
-
-# Database
-MONGODB_URI=mongodb://mongodb:27017/certchain
-
-# API URL
-REACT_APP_API_URL=https://certchain.yourdomain.com/api
-REACT_APP_CONTRACT_ADDRESS=<your-deployed-contract-address>
+MONGODB_URI=mongodb+srv://gihozondahayogermain_db_user:Germain123@cluster0.rsjqk4w.mongodb.net/certchain?retryWrites=true&w=majority
+JWT_SECRET=your-super-secret-jwt-key-min-32-characters-long
+WEBAUTHN_RP_NAME=CertiChain BioVerify
+WEBAUTHN_RP_ID=your-vercel-domain.vercel.app
+WEBAUTHN_ORIGIN=https://your-vercel-domain.vercel.app
+NODE_ENV=production
 ```
 
-### Step 4: Deploy Blockchain Contract
+**IMPORTANT:** Replace `your-vercel-domain` with your actual Vercel domain name!
 
-```bash
-cd blockchain
+### 4. Redeploy After Setting Environment Variables
 
-# Install dependencies
-npm install
+After adding environment variables:
+1. Go to **Deployments** tab
+2. Click on the latest deployment
+3. Click **"Redeploy"** button
+4. Wait for the new deployment to complete
 
-# Configure network (edit hardhat.config.js)
-# Add your network (Polygon Mumbai, Sepolia, etc.)
+### 5. Test Your Deployment
 
-# Deploy contract
-npx hardhat run scripts/deploy.js --network <your-network>
+Once deployed, test these endpoints:
 
-# Save the contract address to .env.production
+#### Health Check
+```
+https://your-domain.vercel.app/health
+```
+Expected response:
+```json
+{"status": "ok", "timestamp": "..."}
 ```
 
-### Step 5: Setup Nginx Reverse Proxy
-
-```bash
-# Install Nginx
-sudo apt install nginx -y
-
-# Create Nginx configuration
-sudo nano /etc/nginx/sites-available/certchain
+#### Frontend
 ```
-
-**Nginx configuration:**
-
-```nginx
-server {
-    listen 80;
-    server_name certchain.yourdomain.com;
-
-    # Redirect to HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name certchain.yourdomain.com;
-
-    # SSL Configuration (Let's Encrypt)
-    ssl_certificate /etc/letsencrypt/live/certchain.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/certchain.yourdomain.com/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-
-    # Frontend
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Backend API
-    location /api {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-}
+https://your-domain.vercel.app
 ```
+You should see the CertiChain login page.
 
-```bash
-# Enable site
-sudo ln -s /etc/nginx/sites-available/certchain /etc/nginx/sites-enabled/
-
-# Test configuration
-sudo nginx -t
-
-# Restart Nginx
-sudo systemctl restart nginx
+#### API Test
 ```
-
-### Step 6: Setup SSL with Let's Encrypt
-
-```bash
-# Install Certbot
-sudo apt install certbot python3-certbot-nginx -y
-
-# Obtain SSL certificate
-sudo certbot --nginx -d certchain.yourdomain.com
-
-# Auto-renewal is configured automatically
-# Test renewal
-sudo certbot renew --dry-run
+https://your-domain.vercel.app/api/auth/register
 ```
+Try registering a new user.
 
-### Step 7: Deploy with Docker Compose
+### 6. Create Admin User (MongoDB Atlas)
 
-```bash
-# Build and start services
-docker-compose -f docker-compose.yml --env-file .env.production up -d
+Since you can't create admin via UI, create directly in MongoDB:
 
-# Check logs
-docker-compose logs -f
-
-# Check running containers
-docker-compose ps
-```
-
-### Step 8: Initialize Database
-
-```bash
-# Create admin user
-docker-compose exec backend node scripts/create-admin.js
-
-# Seed test users (optional)
-docker-compose exec backend node scripts/seed-users.js
-```
-
----
-
-## Vercel + MongoDB Atlas
-
-### Step 1: Setup MongoDB Atlas
-
-1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Create a free cluster
-3. Create database user
-4. Whitelist IP: `0.0.0.0/0` (all IPs)
-5. Get connection string
-
-### Step 2: Deploy Backend to Vercel
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Navigate to backend
-cd backend
-
-# Create vercel.json
-```
-
-**backend/vercel.json:**
+1. Go to https://cloud.mongodb.com
+2. Navigate to your cluster: **Cluster0**
+3. Click **"Browse Collections"**
+4. Find database: **certchain**
+5. Find collection: **users**
+6. Click **"Insert Document"**
+7. Add this document:
 
 ```json
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "src/server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "src/server.js"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  "email": "admin@certchain.com",
+  "password": "$2a$10$YourHashedPasswordHere",
+  "name": "Admin User",
+  "role": "admin",
+  "isVerified": true,
+  "createdAt": {"$date": "2026-06-10T00:00:00.000Z"},
+  "updatedAt": {"$date": "2026-06-10T00:00:00.000Z"}
 }
 ```
 
+**To generate password hash:**
 ```bash
-# Deploy
-vercel --prod
-
-# Set environment variables in Vercel dashboard
+cd backend
+node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('Admin123!', 10))"
 ```
 
-### Step 3: Deploy Frontend to Vercel
-
-```bash
-cd ../frontend
-
-# Deploy
-vercel --prod
-
-# Set environment variables:
-# REACT_APP_API_URL=https://your-backend.vercel.app/api
-```
-
-**Note:** Blockchain node needs separate hosting (Alchemy, Infura, or own node)
+Replace `$2a$10$YourHashedPasswordHere` with the generated hash.
 
 ---
 
-## AWS Deployment
+## 🔧 Project Structure
 
-### Using AWS ECS (Elastic Container Service)
-
-1. **Push Docker images to ECR:**
-```bash
-aws ecr create-repository --repository-name certchain-backend
-aws ecr create-repository --repository-name certchain-frontend
-
-# Build and push
-docker build -t certchain-backend ./backend
-docker tag certchain-backend:latest <account-id>.dkr.ecr.<region>.amazonaws.com/certchain-backend:latest
-docker push <account-id>.dkr.ecr.<region>.amazonaws.com/certchain-backend:latest
 ```
-
-2. **Create ECS Cluster**
-3. **Create Task Definitions**
-4. **Create Services**
-5. **Setup Application Load Balancer**
-6. **Configure Route53 for DNS**
+CertiChain-BioVerify/
+├── frontend/              # React app
+│   ├── build/            # Production build (created during deployment)
+│   ├── public/
+│   └── src/
+├── backend/              # Express API
+│   ├── api/
+│   │   └── index.js     # Vercel serverless entry point
+│   └── src/
+│       ├── controllers/
+│       ├── models/
+│       ├── routes/
+│       └── utils/
+└── vercel.json          # Vercel configuration
+```
 
 ---
 
-## Environment Configuration
+## 🌐 How It Works
 
-### Generate Secure JWT Secret
-
-```bash
-# Generate 64-character random string
-openssl rand -base64 64
-```
-
-### Blockchain Configuration
-
-**For Testnet (Polygon Mumbai):**
-```env
-RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/YOUR_API_KEY
-```
-
-**For Mainnet (Polygon):**
-```env
-RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/YOUR_API_KEY
-```
-
-Get API key from [Alchemy](https://www.alchemy.com/) or [Infura](https://infura.io/)
+1. **Frontend** is built as a static site and served from `/`
+2. **Backend API** runs as serverless functions at `/api/*`
+3. Both share the same domain (monorepo deployment)
+4. No CORS issues because they're on the same origin
+5. Frontend calls API using relative paths: `/api/auth/login`
 
 ---
 
-## Post-Deployment
+## 📝 Troubleshooting
 
-### 1. Health Checks
+### Build Failed: "No Output Directory named 'build' found"
+**Solution:** The `vercel.json` is correctly configured. Make sure:
+- `frontend/package.json` has a `build` script
+- The build script runs `react-scripts build`
 
-```bash
-# Check backend health
-curl https://certchain.yourdomain.com/api/health
+### Backend Returns 500 Error
+**Solution:** Check environment variables are set correctly:
+- `MONGODB_URI` must be valid
+- `JWT_SECRET` must be at least 32 characters
 
-# Check frontend
-curl https://certchain.yourdomain.com
-```
+### Cannot Login After Deployment
+**Solution:** 
+1. Check `WEBAUTHN_RP_ID` matches your Vercel domain (without `https://`)
+2. Check `WEBAUTHN_ORIGIN` includes `https://`
+3. Redeploy after changing environment variables
 
-### 2. Create Admin User
-
-```bash
-docker-compose exec backend node scripts/create-admin.js
-```
-
-### 3. Setup Monitoring
-
-**Install PM2 (if not using Docker):**
-```bash
-npm install -g pm2
-pm2 start backend/src/server.js --name certchain-backend
-pm2 startup
-pm2 save
-```
-
-**Setup monitoring tools:**
-- [UptimeRobot](https://uptimerobot.com/) - Free uptime monitoring
-- [Sentry](https://sentry.io/) - Error tracking
-- [LogRocket](https://logrocket.com/) - Session replay
-
-### 4. Backup Strategy
-
-```bash
-# MongoDB backup script
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-docker-compose exec -T mongodb mongodump --db certchain --archive > backup_$DATE.archive
-
-# Upload to S3 or backup server
-```
-
-### 5. Security Checklist
-
-- [ ] SSL certificate installed and auto-renewal configured
-- [ ] Firewall configured (UFW or security groups)
-- [ ] MongoDB authentication enabled
-- [ ] Environment variables secured
-- [ ] CORS properly configured
-- [ ] Rate limiting enabled
-- [ ] Regular security updates scheduled
+### CORS Errors
+**Solution:** Should not happen in monorepo setup. If you see CORS errors:
+1. Verify `frontend/.env.production` has `REACT_APP_API_URL=/api`
+2. Make sure you're not setting `FRONTEND_URL` environment variable in Vercel
 
 ---
 
-## Troubleshooting
+## ✅ Deployment Checklist
 
-### Container won't start
-```bash
-docker-compose logs backend
-docker-compose logs frontend
-```
-
-### Database connection issues
-```bash
-# Check MongoDB is running
-docker-compose ps mongodb
-
-# Check connection from backend
-docker-compose exec backend node -e "const mongoose = require('mongoose'); mongoose.connect(process.env.MONGODB_URI).then(() => console.log('Connected')).catch(err => console.error(err));"
-```
-
-### WebAuthn not working
-- Ensure HTTPS is enabled (WebAuthn requires secure context)
-- Check `WEBAUTHN_RP_ID` matches your domain
-- Check `WEBAUTHN_ORIGIN` matches your frontend URL
+- [ ] Code pushed to GitHub
+- [ ] Project deployed to Vercel
+- [ ] All environment variables set
+- [ ] Redeployed after setting env vars
+- [ ] Health check returns 200 OK
+- [ ] Frontend loads successfully
+- [ ] User registration works
+- [ ] Admin user created in MongoDB
+- [ ] Admin login works
+- [ ] WebAuthn registration works
 
 ---
 
-## Scaling Considerations
+## 🎯 Your Current Status
 
-### Horizontal Scaling
-- Use load balancer (Nginx, AWS ALB)
-- Run multiple backend instances
-- Use Redis for session storage
+- **GitHub Repository:** `GermainGihozo/CertiChain-BioVerify` ✅
+- **Latest Commit:** Pushed with corrected `vercel.json` ✅
+- **MongoDB Atlas:** Connected and ready ✅
+- **Vercel Configuration:** Clean and ready ✅
 
-### Database Scaling
-- MongoDB replica set
-- Read replicas
-- Sharding for large datasets
-
-### CDN
-- CloudFlare for frontend assets
-- AWS CloudFront
-- Vercel Edge Network
-
----
-
-## Cost Estimation
-
-### Small Scale (< 1000 users)
-- VPS: $12/month (DigitalOcean)
-- Domain: $12/year
-- SSL: Free (Let's Encrypt)
-- **Total: ~$15/month**
-
-### Medium Scale (1000-10000 users)
-- VPS: $24/month (4GB RAM)
-- MongoDB Atlas: $57/month (M10)
-- Blockchain RPC: $49/month (Alchemy Growth)
-- CDN: $20/month
-- **Total: ~$150/month**
-
-### Enterprise Scale
-- AWS ECS/EKS: $200+/month
-- RDS/DocumentDB: $100+/month
-- Load Balancer: $20/month
-- CloudFront: $50+/month
-- **Total: $400+/month**
-
----
-
-## Support
-
-For deployment issues:
-- GitHub Issues: https://github.com/GermainGihozo/CertiChain-BioVerify/issues
-- Email: support@certchain.com
-
----
-
-**Last Updated:** April 2026
+**Next Action:** Deploy to Vercel and set environment variables!
