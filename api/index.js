@@ -36,12 +36,22 @@ module.exports = async (req, res) => {
     const query = parsedUrl.query;
     
     // Reconstruct the original path from query.path if it exists
+    // Vercel rewrites /api/auth/register to /api?path=auth/register
+    // We need to reconstruct it as /api/auth/register for Express
     if (query.path) {
-      req.url = `/${query.path}`;
+      // Remove any leading slashes and reconstruct with /api prefix
+      const cleanPath = query.path.replace(/^\/+/, '');
+      req.url = `/api/${cleanPath}`;
+      
+      // Remove the query string from original URL
+      const questionMarkIndex = req.url.indexOf('?');
+      if (questionMarkIndex !== -1) {
+        req.url = req.url.substring(0, questionMarkIndex);
+      }
     }
     
     // Simple health check (before DB connection for quick response)
-    if (req.url === '/health' || req.url === '/') {
+    if (req.url === '/health' || req.url === '/' || req.url === '' || req.url === '/api') {
       return res.status(200).json({ 
         status: "ok",
         timestamp: new Date().toISOString(),
