@@ -35,6 +35,12 @@ module.exports = async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const query = parsedUrl.query;
     
+    console.log("Incoming request:", {
+      originalUrl: req.url,
+      method: req.method,
+      query: query
+    });
+    
     // Reconstruct the original path from query.path if it exists
     // Vercel rewrites /api/auth/register to /api?path=auth/register
     // We need to reconstruct it as /api/auth/register for Express
@@ -43,11 +49,7 @@ module.exports = async (req, res) => {
       const cleanPath = query.path.replace(/^\/+/, '');
       req.url = `/api/${cleanPath}`;
       
-      // Remove the query string from original URL
-      const questionMarkIndex = req.url.indexOf('?');
-      if (questionMarkIndex !== -1) {
-        req.url = req.url.substring(0, questionMarkIndex);
-      }
+      console.log("Reconstructed URL:", req.url);
     }
     
     // Simple health check (before DB connection for quick response)
@@ -60,19 +62,23 @@ module.exports = async (req, res) => {
     }
     
     // Ensure database connection for all other routes
+    console.log("Ensuring database connection...");
     await ensureConnection();
+    console.log("Database connected, forwarding to Express app");
     
     // Log incoming request
-    console.log(`${req.method} ${req.url}`);
+    console.log(`Forwarding: ${req.method} ${req.url}`);
     
     // Forward to Express app
     return app(req, res);
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("❌ API Error:", error);
+    console.error("Error message:", error.message);
     console.error("Stack:", error.stack);
     return res.status(500).json({ 
       error: "Internal server error",
-      message: error.message
+      message: error.message,
+      details: process.env.NODE_ENV === 'production' ? 'Check function logs' : error.stack
     });
   }
 };
