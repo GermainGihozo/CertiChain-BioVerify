@@ -14,7 +14,12 @@ function getABI() {
       "Contract ABI not found. Run: cd blockchain && npx hardhat run scripts/deploy.js"
     );
   }
-  return JSON.parse(fs.readFileSync(abiPath, "utf8"));
+  const abiData = JSON.parse(fs.readFileSync(abiPath, "utf8"));
+  // Handle both formats: {abi, address} or just the abi array
+  return {
+    abi: abiData.abi || abiData,
+    address: abiData.address || process.env.CONTRACT_ADDRESS
+  };
 }
 
 function getProvider() {
