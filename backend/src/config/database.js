@@ -9,7 +9,8 @@ async function connectDB() {
     logger.info("✅ MongoDB connected:", uri.replace(/\/\/.*@/, "//***@"));
   } catch (err) {
     logger.error("MongoDB connection error:", err.message);
-    process.exit(1);
+    // Don't use process.exit in serverless - throw error instead
+    throw new Error(`MongoDB connection failed: ${err.message}`);
   }
 
   mongoose.connection.on("disconnected", () => {
