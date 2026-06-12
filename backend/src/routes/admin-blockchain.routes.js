@@ -1,13 +1,13 @@
 const router = require("express").Router();
 const { ethers } = require("ethers");
 const Institution = require("../models/Institution");
-const { auth, requireRole } = require("../middleware/auth");
+const { authenticate, requireRole } = require("../middleware/auth");
 
 /**
  * POST /api/admin/blockchain/register-institutions
  * Admin-only endpoint to register all institutions on blockchain
  */
-router.post("/register-institutions", auth, requireRole("admin"), async (req, res) => {
+router.post("/register-institutions", authenticate, requireRole("admin"), async (req, res) => {
   try {
     const contractABI = require("../blockchain/CertificateRegistry.json").abi;
     
