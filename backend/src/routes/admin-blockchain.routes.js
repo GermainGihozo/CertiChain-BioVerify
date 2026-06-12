@@ -11,8 +11,12 @@ router.post("/register-institutions", authenticate, requireRole("admin"), async 
   try {
     const contractABI = require("../blockchain/CertificateRegistry.json").abi;
     
-    // Connect to blockchain
-    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+    // Connect to blockchain with explicit fetch options
+    const fetchRequest = new ethers.FetchRequest(process.env.RPC_URL);
+    fetchRequest.timeout = 30000; // 30 second timeout
+    fetchRequest.setHeader("Content-Type", "application/json");
+    
+    const provider = new ethers.JsonRpcProvider(fetchRequest);
     const wallet = new ethers.Wallet(process.env.ADMIN_WALLET_PRIVATE_KEY, provider);
     const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, contractABI, wallet);
     
@@ -53,9 +57,19 @@ router.post("/register-institutions", authenticate, requireRole("admin"), async 
       };
 
       try {
-        // Check if already registered on chain
-        const chainInst = await contract.getInstitution(inst.walletAddress);
-        if (chainInst.isActive) {
+        // Check if already registered on chain - wrap in try/catch with detailed error
+        let isRegistered = false;
+        try {
+          const chainInst = await contract.getInstitution(inst.walletAddress);
+          isRegistered = chainInst.isActive;
+        } catch (checkErr) {
+          // If error is "call revert exception", institution doesn't exist - that's fine
+          if (!checkErr.message.includes("call revert")) {
+            throw checkErr; // Re-throw other errors
+          }
+        }
+        
+        if (isRegistered) {
           result.status = "already_registered";
           
           // Update database if needed
@@ -69,24 +83,15 @@ router.post("/register-institutions", authenticate, requireRole("admin"), async 
           results.push(result);
           continue;
         }
-      } catch (err) {
-        // Not registered, continue to register
-      }
 
-      // Register on blockchain
-      try {
-        const gasEstimate = await contract.registerInstitution.estimateGas(
-          inst.walletAddress,
-          inst.name
-        );
-        
+        // Register on blockchain
         const tx = await contract.registerInstitution(
           inst.walletAddress,
           inst.name,
-          { gasLimit: gasEstimate * 120n / 100n }
+          { gasLimit: 500000 } // Use fixed gas limit to avoid estimation issues
         );
         
-        const receipt = await tx.wait();
+        const receipt = await tx.wait(1); // Wait for 1 confirmation
         
         // Update database
         inst.registeredOnChain = true;
@@ -99,9 +104,16 @@ router.post("/register-institutions", authenticate, requireRole("admin"), async 
         registered++;
       } catch (err) {
         result.status = "failed";
-        result.error = err.message;
+        result.error = err.message || String(err);
         
         if (err.reason) result.error += ` (${err.reason})`;
+        if (err.code) result.error += ` [${err.code}]`;
+        
+        // More helpful error messages
+        if (err.message.includes("insufficient funds")) {
+          result.error = "Insufficient funds for gas";
+          result.solution = "Get Sepolia ETH from https://sepoliafaucet.com/";
+        }
         
         failed++;
       }
@@ -125,7 +137,9 @@ router.post("/register-institutions", authenticate, requireRole("admin"), async 
   } catch (err) {
     res.status(500).json({
       error: "Registration failed",
-      message: err.message
+      message: err.message || String(err),
+      code: err.code,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 });
