@@ -25,7 +25,18 @@ function getABI() {
 function getProvider() {
   if (!provider) {
     const rpcUrl = process.env.RPC_URL || "http://127.0.0.1:8545";
-    provider = new ethers.JsonRpcProvider(rpcUrl);
+    
+    // For serverless environments, use StaticJsonRpcProvider with custom fetch
+    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+      // Use node's built-in fetch if available (Node 18+), otherwise ethers default
+      const fetchFunc = global.fetch || undefined;
+      provider = new ethers.JsonRpcProvider(rpcUrl, undefined, { 
+        staticNetwork: true,
+        batchMaxCount: 1 // Disable batching which can cause issues in serverless
+      });
+    } else {
+      provider = new ethers.JsonRpcProvider(rpcUrl);
+    }
     
     // Suppress connection errors in development
     provider.on("error", (error) => {
@@ -102,11 +113,27 @@ async function getCertificateFromChain(certId) {
  * Register institution on-chain.
  */
 async function registerInstitutionOnChain(walletAddress, name) {
-  const c = getContract(true);
-  const tx = await c.registerInstitution(walletAddress, name);
-  const receipt = await tx.wait();
-  logger.info(`Institution registered on-chain: ${name}, tx: ${receipt.hash}`);
-  return { txHash: receipt.hash };
+  try {
+    const c = getContract(true);
+    
+    // Set a reasonable gas limit to avoid estimation
+    const tx = await c.registerInstitution(walletAddress, name, {
+      gasLimit: 500000
+    });
+    
+    const receipt = await tx.wait(1); // Wait for 1 confirmation
+    logger.info(`Institution registered on-chain: ${name}, tx: ${receipt.hash}`);
+    return { txHash: receipt.hash };
+  } catch (error) {
+    logger.error(`Institution registration failed for ${name}:`, error.message);
+    
+    // Provide more helpful error message
+    if (error.message.includes("already registered")) {
+      throw new Error(`Institution ${name} is already registered on blockchain`);
+    }
+    
+    throw error;
+  }
 }
 
 /**
