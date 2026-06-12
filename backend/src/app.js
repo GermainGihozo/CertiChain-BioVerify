@@ -12,6 +12,7 @@ const verifyRoutes      = require("./routes/verify.routes");
 const webauthnRoutes    = require("./routes/webauthn.routes");
 const adminRoutes       = require("./routes/admin.routes");
 const verificationRequestRoutes = require("./routes/verificationRequest.routes");
+const blockchainTestRoutes = require("./routes/blockchain-test.routes");
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -95,6 +96,7 @@ app.use("/api/verify",       verifyRoutes);
 app.use("/api/webauthn",     webauthnRoutes);
 app.use("/api/admin",        adminRoutes);
 app.use("/api/verification-requests", verificationRequestRoutes);
+app.use("/api/blockchain",   blockchainTestRoutes);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {
