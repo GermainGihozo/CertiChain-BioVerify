@@ -13,6 +13,7 @@ const webauthnRoutes    = require("./routes/webauthn.routes");
 const adminRoutes       = require("./routes/admin.routes");
 const verificationRequestRoutes = require("./routes/verificationRequest.routes");
 const blockchainTestRoutes = require("./routes/blockchain-test.routes");
+const adminBlockchainRoutes = require("./routes/admin-blockchain.routes");
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -95,6 +96,7 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/verify",       verifyRoutes);
 app.use("/api/webauthn",     webauthnRoutes);
 app.use("/api/admin",        adminRoutes);
+app.use("/api/admin/blockchain", adminBlockchainRoutes);
 app.use("/api/verification-requests", verificationRequestRoutes);
 app.use("/api/blockchain",   blockchainTestRoutes);
 
