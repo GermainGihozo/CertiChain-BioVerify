@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { ethers } = require("ethers");
 const Institution = require("../models/Institution");
 const { authenticate, requireRole } = require("../middleware/auth");
+const { registerInstitutionOnChain } = require("../utils/blockchain");
 
 /**
  * POST /api/admin/blockchain/register-institutions
@@ -9,27 +10,6 @@ const { authenticate, requireRole } = require("../middleware/auth");
  */
 router.post("/register-institutions", authenticate, requireRole("admin"), async (req, res) => {
   try {
-    const contractABI = require("../blockchain/CertificateRegistry.json").abi;
-    
-    // Connect to blockchain with explicit fetch options
-    const fetchRequest = new ethers.FetchRequest(process.env.RPC_URL);
-    fetchRequest.timeout = 30000; // 30 second timeout
-    fetchRequest.setHeader("Content-Type", "application/json");
-    
-    const provider = new ethers.JsonRpcProvider(fetchRequest);
-    const wallet = new ethers.Wallet(process.env.ADMIN_WALLET_PRIVATE_KEY, provider);
-    const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, contractABI, wallet);
-    
-    const balance = await provider.getBalance(wallet.address);
-    
-    if (balance === 0n) {
-      return res.status(400).json({
-        error: "Insufficient funds",
-        message: "Admin wallet has 0 ETH. Get Sepolia ETH from https://sepoliafaucet.com/",
-        wallet: wallet.address
-      });
-    }
-
     // Get all active institutions
     const institutions = await Institution.find({ isActive: true });
     
@@ -56,66 +36,45 @@ router.post("/register-institutions", authenticate, requireRole("admin"), async 
         error: null
       };
 
-      try {
-        // Check if already registered on chain - wrap in try/catch with detailed error
-        let isRegistered = false;
-        try {
-          const chainInst = await contract.getInstitution(inst.walletAddress);
-          isRegistered = chainInst.isActive;
-        } catch (checkErr) {
-          // If error is "call revert exception", institution doesn't exist - that's fine
-          if (!checkErr.message.includes("call revert")) {
-            throw checkErr; // Re-throw other errors
-          }
-        }
-        
-        if (isRegistered) {
-          result.status = "already_registered";
-          
-          // Update database if needed
-          if (!inst.registeredOnChain) {
-            inst.registeredOnChain = true;
-            await inst.save();
-            result.status = "already_registered_db_updated";
-          }
-          
-          skipped++;
-          results.push(result);
-          continue;
-        }
+      // Skip if already marked as registered
+      if (inst.registeredOnChain) {
+        result.status = "already_registered_in_db";
+        skipped++;
+        results.push(result);
+        continue;
+      }
 
-        // Register on blockchain
-        const tx = await contract.registerInstitution(
+      // Try to register on blockchain
+      try {
+        const { txHash } = await registerInstitutionOnChain(
           inst.walletAddress,
-          inst.name,
-          { gasLimit: 500000 } // Use fixed gas limit to avoid estimation issues
+          inst.name
         );
-        
-        const receipt = await tx.wait(1); // Wait for 1 confirmation
         
         // Update database
         inst.registeredOnChain = true;
-        inst.chainTxHash = receipt.hash;
+        inst.chainTxHash = txHash;
         await inst.save();
         
         result.status = "registered";
-        result.txHash = receipt.hash;
-        result.blockNumber = receipt.blockNumber;
+        result.txHash = txHash;
         registered++;
       } catch (err) {
         result.status = "failed";
         result.error = err.message || String(err);
         
-        if (err.reason) result.error += ` (${err.reason})`;
-        if (err.code) result.error += ` [${err.code}]`;
-        
-        // More helpful error messages
-        if (err.message.includes("insufficient funds")) {
-          result.error = "Insufficient funds for gas";
-          result.solution = "Get Sepolia ETH from https://sepoliafaucet.com/";
+        // Check if it's already registered error
+        if (err.message.includes("already registered") || err.message.includes("AlreadyRegistered")) {
+          result.status = "already_registered_on_chain";
+          
+          // Update DB to reflect this
+          inst.registeredOnChain = true;
+          await inst.save();
+          
+          skipped++;
+        } else {
+          failed++;
         }
-        
-        failed++;
       }
 
       results.push(result);
@@ -130,15 +89,12 @@ router.post("/register-institutions", authenticate, requireRole("admin"), async 
         failed,
         total: institutions.length
       },
-      results,
-      adminWallet: wallet.address,
-      balance: ethers.formatEther(balance) + " ETH"
+      results
     });
   } catch (err) {
     res.status(500).json({
       error: "Registration failed",
       message: err.message || String(err),
-      code: err.code,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
