@@ -100,4 +100,73 @@ router.post("/register-institutions", authenticate, requireRole("admin"), async 
   }
 });
 
+/**
+ * POST /api/admin/blockchain/sync-institutions
+ * Sync database with blockchain registration status
+ */
+router.post("/sync-institutions", authenticate, requireRole("admin"), async (req, res) => {
+  try {
+    const contractABI = require("../blockchain/CertificateRegistry.json").abi;
+    const { ethers } = require("ethers");
+    
+    // Connect to blockchain
+    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+    const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, contractABI, provider);
+    
+    // Get all active institutions
+    const institutions = await Institution.find({ isActive: true });
+    
+    let synced = 0;
+    const results = [];
+    
+    for (const inst of institutions) {
+      try {
+        // Check blockchain status
+        const chainInst = await contract.getInstitution(inst.walletAddress);
+        
+        if (chainInst.isActive && !inst.registeredOnChain) {
+          // Update database to match blockchain
+          inst.registeredOnChain = true;
+          await inst.save();
+          synced++;
+          
+          results.push({
+            name: inst.name,
+            wallet: inst.walletAddress,
+            status: "synced",
+            message: "Database updated to match blockchain"
+          });
+        } else {
+          results.push({
+            name: inst.name,
+            wallet: inst.walletAddress,
+            status: "already_synced",
+            message: "Already in sync"
+          });
+        }
+      } catch (err) {
+        results.push({
+          name: inst.name,
+          wallet: inst.walletAddress,
+          status: "error",
+          error: err.message
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Synced ${synced} institution(s)`,
+      synced,
+      total: institutions.length,
+      results
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: "Sync failed",
+      message: err.message
+    });
+  }
+});
+
 module.exports = router;
