@@ -169,4 +169,52 @@ router.post("/sync-institutions", authenticate, requireRole("admin"), async (req
   }
 });
 
+/**
+ * POST /api/admin/blockchain/update-certificate
+ * Manually update certificate blockchain data
+ */
+router.post("/update-certificate", authenticate, requireRole("admin"), async (req, res) => {
+  try {
+    const { certificateId, txHash, blockNumber } = req.body;
+    
+    if (!certificateId || !txHash) {
+      return res.status(400).json({
+        error: "Missing required fields",
+        required: ["certificateId", "txHash"]
+      });
+    }
+    
+    const Certificate = require("../models/Certificate");
+    const cert = await Certificate.findOne({ certificateId });
+    
+    if (!cert) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    
+    // Update blockchain info
+    cert.isOnChain = true;
+    cert.blockchainTxHash = txHash;
+    if (blockNumber) {
+      cert.blockNumber = blockNumber;
+    }
+    await cert.save();
+    
+    res.json({
+      success: true,
+      message: "Certificate blockchain data updated",
+      certificate: {
+        certificateId: cert.certificateId,
+        isOnChain: cert.isOnChain,
+        blockchainTxHash: cert.blockchainTxHash,
+        blockNumber: cert.blockNumber
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: "Update failed",
+      message: err.message
+    });
+  }
+});
+
 module.exports = router;
